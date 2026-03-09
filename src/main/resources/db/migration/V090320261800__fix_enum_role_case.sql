@@ -1,0 +1,4 @@
+
+UPDATE users SET role = UPPER(role);
+
+ALTER TABLE users MODIFY COLUMN role ENUM('ADMIN', 'TUTOR', 'PARENT') NOT NULL;
