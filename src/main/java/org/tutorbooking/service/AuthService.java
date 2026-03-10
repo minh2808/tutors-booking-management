@@ -1,6 +1,7 @@
 package org.tutorbooking.service;
 
 import org.springframework.transaction.annotation.Transactional;
+import org.tutorbooking.dto.request.GoogleLoginRequest;
 import org.tutorbooking.dto.request.RegisterRequest;
 
 import org.tutorbooking.dto.request.LoginRequest;
@@ -11,4 +12,7 @@ public interface AuthService {
     void registerUser(RegisterRequest signUpRequest);
 
     AuthResponse loginUser(LoginRequest loginRequest);
+
+
+    AuthResponse googleLogin(GoogleLoginRequest googleLoginRequest);
 }

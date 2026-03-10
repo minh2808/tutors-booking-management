@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
+import org.tutorbooking.dto.request.GoogleLoginRequest;
 import org.tutorbooking.dto.request.RegisterRequest;
 import org.tutorbooking.dto.request.LoginRequest;
 import org.tutorbooking.dto.response.ApiResponse;
@@ -41,8 +42,19 @@ public class AuthController {
             AuthResponse authResponse = authService.loginUser(loginRequest);
             return ResponseEntity.ok(authResponse);
         } catch (Exception e) {
-            e.printStackTrace(); // In lỗi đỏ lòm ra console để dò tìm
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(ApiResponse.builder().success(false).message("Lỗi thực sự: " + e.getMessage()).build());
+        }
+    }
+
+    @PostMapping("/google/login")
+    public ResponseEntity<?> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+        try {
+            AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(ApiResponse.builder().success(false).message(e.getMessage()).build());
         }
     }
 
