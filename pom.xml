@@ -90,6 +90,14 @@
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
 
+        <!-- Google API Client de xac thuc ID Token -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+
         <!-- Spring Mail for Forgot Password -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
