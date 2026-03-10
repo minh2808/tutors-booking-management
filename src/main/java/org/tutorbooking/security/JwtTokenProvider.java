@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.userdetails.User ;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -42,8 +43,8 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        org.springframework.security.core.userdetails.User userPrincipal =
-                (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+        User userPrincipal =
+                (User) authentication.getPrincipal();
 
         long refreshTokenDurationMs = 604800000L;
         Date now = new Date();
