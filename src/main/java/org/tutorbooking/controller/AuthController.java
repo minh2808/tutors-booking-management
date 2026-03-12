@@ -71,7 +71,6 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         try {
-            // Lấy email của user đang gọi request từ SecurityContext
             org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             authService.logout(auth.getName());
             
@@ -106,7 +105,7 @@ public class AuthController {
         try {
             org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName(); 
-            
+
             authService.changePassword(email, request);
             
             return ResponseEntity.ok(ApiResponse.builder().success(true).message("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.").build());
