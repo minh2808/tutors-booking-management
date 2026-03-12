@@ -51,6 +51,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private GoogleTokenVerifier googleTokenVerifier;
 
+    @Autowired
+    private org.springframework.mail.javamail.JavaMailSender mailSender;
+
     @Transactional
     @Override
     public void registerUser(RegisterRequest signUpRequest) {
@@ -175,5 +178,109 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .build();
+    }
+
+    @Override
+    public AuthResponse refreshToken(org.tutorbooking.dto.request.RefreshTokenRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        if (!jwtTokenProvider.validateJwtToken(requestRefreshToken)) {
+            throw new RuntimeException("Refresh Token không hợp lệ hoặc đã hết hạn!");
+        }
+
+        String email = jwtTokenProvider.getEmailFromJwtToken(requestRefreshToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        if (!requestRefreshToken.equals(user.getRefreshToken())) {
+            throw new RuntimeException("Refresh Token không khớp với hệ thống!");
+        }
+
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        org.springframework.security.core.userdetails.User userPrincipal = new org.springframework.security.core.userdetails.User(
+                user.getEmail(), user.getPassword(), Collections.singletonList(authority));
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
+
+        String newAccessToken = jwtTokenProvider.generateToken(authentication);
+
+        return AuthResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(requestRefreshToken) 
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                .build();
+    }
+
+    @Override
+    public void logout(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        user.setRefreshToken(null);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void forgotPassword(org.tutorbooking.dto.request.ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống"));
+
+        java.util.Date now = new java.util.Date();
+        java.util.Date expiryDate = new java.util.Date(now.getTime() + 15 * 60 * 1000); 
+
+        String resetToken = io.jsonwebtoken.Jwts.builder()
+                .subject(user.getEmail())
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(jwtTokenProvider.getSigningKey())
+                .compact();
+
+        org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
+        message.setTo(user.getEmail());
+        message.setSubject("Yêu cầu đặt lại mật khẩu - Tutor Booking");
+        message.setText("Chúng tôi nhận được yêu cầu đặt lại mật khẩu của bạn.\n\n" +
+                "Vui lòng sử dụng mã Token dưới đây (có hiệu lực trong 15 phút) để đổi mật khẩu mới:\n\n" +
+                resetToken + "\n\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.");
+        mailSender.send(message);
+    }
+
+    @Override
+    public void resetPassword(org.tutorbooking.dto.request.ResetPasswordRequest request) {
+        if (!jwtTokenProvider.validateJwtToken(request.getToken())) {
+            throw new RuntimeException("Token không hợp lệ hoặc đã hết hạn!");
+        }
+
+        String email = jwtTokenProvider.getEmailFromJwtToken(request.getToken());
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setRefreshToken(null); 
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String email, org.tutorbooking.dto.request.ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng trong hệ thống."));
+
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new RuntimeException("Tài khoản liên kết với Google không thể đổi mật khẩu theo cách này!");
+        }
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu cũ không chính xác!");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        
+        user.setRefreshToken(null); 
+        
+        userRepository.save(user);
     }
 }
