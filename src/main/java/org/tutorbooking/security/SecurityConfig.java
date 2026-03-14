@@ -30,21 +30,46 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
+    // @Bean
+    // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    //     http
+    //             .csrf(AbstractHttpConfigurer::disable)
+    //             .cors(AbstractHttpConfigurer::disable)
+    //             .authorizeHttpRequests(auth -> auth
+    //                     .requestMatchers("/api/auth/**").permitAll()
+    //                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+    //                     .requestMatchers("/api/parent/**").hasRole("PARENT")
+
+
+    //                     .requestMatchers("/api/tutor/**").hasRole("TUTOR")
+
+    //                     .anyRequest().authenticated()
+    //             );
+
+    //     http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+    //     return http.build();
+    // }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Mở cửa cho trang chủ, login và các file tĩnh
+                        .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
+                        // 2. Phân quyền theo vai trò
                         .requestMatchers("/api/parent/**").hasRole("PARENT")
-
-
                         .requestMatchers("/api/tutor/**").hasRole("TUTOR")
 
-                        .anyRequest().authenticated()
+                        // 3. Còn lại phải đăng nhập
+                        .anyRequest().authenticated())
+                // 4. Kích hoạt đăng nhập bằng Google (OAuth2)
+                .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl("/api/auth/google-success", true) // Đường dẫn sau khi login thành công
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
