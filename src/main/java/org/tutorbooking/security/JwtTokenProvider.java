@@ -8,11 +8,13 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
-import org.springframework.security.core.userdetails.User ;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
@@ -28,14 +30,22 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    // Hàm dùng chung để lấy Email từ bất kỳ loại Authentication nào
+    private String getUsernameFromAuth(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+            return oAuth2User.getAttribute("email");
+        }
+        return authentication.getName();
+    }
+
     public String generateToken(Authentication authentication) {
-        
-        org.springframework.security.core.userdetails.User userPrincipal =
-                (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+        String username = getUsernameFromAuth(authentication);
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+
         return Jwts.builder()
-                .subject(userPrincipal.getUsername()) // Lưu Email vào lõi Token
+                .subject(username)
                 .issuedAt(new Date())
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -43,14 +53,14 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        User userPrincipal =
-                (User) authentication.getPrincipal();
+        String username = getUsernameFromAuth(authentication);
 
-        long refreshTokenDurationMs = 604800000L;
+        long refreshTokenDurationMs = 604800000L; // 7 ngày
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenDurationMs);
+
         return Jwts.builder()
-                .subject(userPrincipal.getUsername())
+                .subject(username)
                 .issuedAt(new Date())
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -63,9 +73,8 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .getSubject(); // Lấy lại mẩu subject (email) đã lưu
+                .getSubject();
     }
-
 
     public boolean validateJwtToken(String authToken) {
         try {

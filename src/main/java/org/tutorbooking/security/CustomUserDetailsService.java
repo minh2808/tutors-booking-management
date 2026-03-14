@@ -26,10 +26,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
 
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
-
+        String password = (user.getPassword() != null) ? user.getPassword() : "";
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
-                user.getPassword(),
+                password,
                 Collections.singletonList(authority)
         );
     }
