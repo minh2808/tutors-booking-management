@@ -15,4 +15,13 @@ public interface AuthService {
 
 
     AuthResponse googleLogin(GoogleLoginRequest googleLoginRequest);
+
+    AuthResponse refreshToken(org.tutorbooking.dto.request.RefreshTokenRequest request);
+    void logout(String email);
+    void forgotPassword(org.tutorbooking.dto.request.ForgotPasswordRequest request);
+    void resetPassword(org.tutorbooking.dto.request.ResetPasswordRequest request);
+
+    @Transactional
+    void changePassword(String email, org.tutorbooking.dto.request.ChangePasswordRequest request);
 }
+
