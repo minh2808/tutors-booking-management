@@ -30,66 +30,66 @@ public class AuthController {
     @Autowired
     private org.tutorbooking.repository.UserRepository userRepository;
 
-    @GetMapping("/google-success")
-    public ResponseEntity<?> googleSuccess(Authentication authentication) {
-        try {
-            if (authentication == null)
-                return ResponseEntity.status(401).body("Xác thực thất bại");
-
-            String email, name, picture;
-            if (authentication
-                    .getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User oAuth2User) {
-                email = oAuth2User.getAttribute("email");
-                name = oAuth2User.getAttribute("name");
-                picture = oAuth2User.getAttribute("picture");
-            } else {
-                return ResponseEntity.status(401).body("Không lấy được thông tin từ Google");
-            }
-
-            // 1. Kiểm tra xem User đã có trong DB chưa
-            var userOptional = userRepository.findByEmail(email);
-            org.tutorbooking.domain.entity.User user;
-
-            if (userOptional.isEmpty()) {
-                // 2. NẾU CHƯA CÓ -> TỰ ĐỘNG TẠO MỚI (Mặc định là PARENT cho dễ test)
-                user = org.tutorbooking.domain.entity.User.builder()
-                        .email(email)
-                        .fullName(name)
-                        .avatarUrl(picture)
-                        .role(org.tutorbooking.domain.enums.Role.PARENT) // Mặc định Role
-                        .authProvider(org.tutorbooking.domain.enums.AuthProvider.GOOGLE)
-                        .isActive(true)
-                        .build();
-                user = userRepository.save(user);
-                System.out.println(">>> Đã tự động lưu User mới: " + email);
-            } else {
-                user = userOptional.get();
-            }
-
-            // 3. Đóng gói lại thành User chuẩn của Spring Security để tạo JWT
-            var authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                    "ROLE_" + user.getRole().name());
-            var userPrincipal = new org.springframework.security.core.userdetails.User(
-                    user.getEmail(), "", java.util.Collections.singletonList(authority));
-
-            var finalAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                    userPrincipal, null, userPrincipal.getAuthorities());
-
-            // 4. Tạo Token
-            String jwt = jwtTokenProvider.generateToken(finalAuth);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("accessToken", jwt);
-            response.put("email", user.getEmail());
-            response.put("role", user.getRole());
-            response.put("message", "Đã lưu user và cấp Token thành công!");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Lỗi: " + e.getMessage());
-        }
-    }
+//    @GetMapping("/google-success")
+//    public ResponseEntity<?> googleSuccess(Authentication authentication) {
+//        try {
+//            if (authentication == null)
+//                return ResponseEntity.status(401).body("Xác thực thất bại");
+//
+//            String email, name, picture;
+//            if (authentication
+//                    .getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User oAuth2User) {
+//                email = oAuth2User.getAttribute("email");
+//                name = oAuth2User.getAttribute("name");
+//                picture = oAuth2User.getAttribute("picture");
+//            } else {
+//                return ResponseEntity.status(401).body("Không lấy được thông tin từ Google");
+//            }
+//
+//            // 1. Kiểm tra xem User đã có trong DB chưa
+//            var userOptional = userRepository.findByEmail(email);
+//            org.tutorbooking.domain.entity.User user;
+//
+//            if (userOptional.isEmpty()) {
+//                // 2. NẾU CHƯA CÓ -> TỰ ĐỘNG TẠO MỚI (Mặc định là PARENT cho dễ test)
+//                user = org.tutorbooking.domain.entity.User.builder()
+//                        .email(email)
+//                        .fullName(name)
+//                        .avatarUrl(picture)
+//                        .role(org.tutorbooking.domain.enums.Role.PARENT) // Mặc định Role
+//                        .authProvider(org.tutorbooking.domain.enums.AuthProvider.GOOGLE)
+//                        .isActive(true)
+//                        .build();
+//                user = userRepository.save(user);
+//                System.out.println(">>> Đã tự động lưu User mới: " + email);
+//            } else {
+//                user = userOptional.get();
+//            }
+//
+//            // 3. Đóng gói lại thành User chuẩn của Spring Security để tạo JWT
+//            var authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
+//                    "ROLE_" + user.getRole().name());
+//            var userPrincipal = new org.springframework.security.core.userdetails.User(
+//                    user.getEmail(), "", java.util.Collections.singletonList(authority));
+//
+//            var finalAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+//                    userPrincipal, null, userPrincipal.getAuthorities());
+//
+//            // 4. Tạo Token
+//            String jwt = jwtTokenProvider.generateToken(finalAuth);
+//
+//            Map<String, Object> response = new HashMap<>();
+//            response.put("accessToken", jwt);
+//            response.put("email", user.getEmail());
+//            response.put("role", user.getRole());
+//            response.put("message", "Đã lưu user và cấp Token thành công!");
+//
+//            return ResponseEntity.ok(response);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(500).body("Lỗi: " + e.getMessage());
+//        }
+//    }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
@@ -185,4 +185,4 @@ public class AuthController {
         }
     }
 }
-}
+
