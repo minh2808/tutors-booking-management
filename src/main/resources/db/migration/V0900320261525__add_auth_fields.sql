@@ -1,5 +1,3 @@
-USE tutor_booking;
-
 ALTER TABLE users
     RENAME COLUMN password_hash TO password;
 
