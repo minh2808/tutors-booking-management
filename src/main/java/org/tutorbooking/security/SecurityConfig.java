@@ -40,7 +40,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> corsConfigurationSource())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // 1. Mở cửa cho trang chủ, login và các file tĩnh
                         .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
