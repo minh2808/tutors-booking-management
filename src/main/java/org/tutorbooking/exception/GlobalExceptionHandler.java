@@ -50,16 +50,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMailAuthenticationException(MailAuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Lỗi cấu hình gửi email: " + ex.getMessage()));
-
-        // Đóng gói mớ lỗi đó thành 1 String
-        String finalMessage = "Validation failed: " + errors.toString();
-
-        // Trả về JSON 400 Bad Request kèm thông báo, CHẶN DỨNG việc đá sang trang Google
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.builder()
-                        .success(false)
-                        .message(finalMessage)
-                        .build());
     }
 
 }
