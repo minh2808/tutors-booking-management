@@ -1,9 +1,6 @@
 package org.tutorbooking.dto.response;
 
-<<<<<<< HEAD
 import com.fasterxml.jackson.annotation.JsonInclude;
-=======
->>>>>>> UPDATE
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +12,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-<<<<<<< HEAD
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private boolean success;
@@ -51,10 +47,10 @@ public class ApiResponse<T> {
                 .message(message)
                 .build();
     }
-=======
+
 public class ApiResponse {
     private boolean success;
     private String message;
     private Object data;
->>>>>>> UPDATE
+
 }
