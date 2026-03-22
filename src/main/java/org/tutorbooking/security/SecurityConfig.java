@@ -42,8 +42,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+<<<<<<< HEAD
                         .requestMatchers("/api/auth/logout", "/api/auth/change-password").authenticated()
                         
+=======
+>>>>>>> main
                         // 1. Mở cửa cho trang chủ, login và các file tĩnh
                         .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -69,8 +72,12 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
+<<<<<<< HEAD
                 "https://tutors-booking-management-fe.vercel.app",
                 "http://localhost:8080"
+=======
+                "https://tutors-booking-management-fe.vercel.app"
+>>>>>>> main
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*")) ;

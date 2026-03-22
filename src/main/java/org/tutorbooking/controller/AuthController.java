@@ -12,7 +12,12 @@ import org.tutorbooking.dto.request.LoginRequest;
 import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.AuthResponse;
 import org.tutorbooking.service.AuthService;
+<<<<<<< HEAD
 import org.tutorbooking.security.JwtTokenProvider; 
+=======
+import org.tutorbooking.security.JwtTokenProvider; // Đảm bảo đúng package của bạn
+
+>>>>>>> main
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,31 +44,43 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponse authResponse = authService.loginUser(loginRequest);
+<<<<<<< HEAD
         return ResponseEntity.ok(ApiResponse.builder()
                 .success(true)
                 .message("Đăng nhập thành công!")
                 .data(authResponse) 
                 .build());
+=======
+        return ResponseEntity.ok(authResponse);
+>>>>>>> main
     }
 
     @PostMapping("/google/login")
     public ResponseEntity<?> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
+<<<<<<< HEAD
         return ResponseEntity.ok(ApiResponse.builder()
                 .success(true)
                 .message("Đăng nhập Google thành công!")
                 .data(authResponse)
                 .build());
+=======
+        return ResponseEntity.ok(authResponse);
+>>>>>>> main
     }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@Valid @RequestBody org.tutorbooking.dto.request.RefreshTokenRequest request) {
         AuthResponse authResponse = authService.refreshToken(request);
+<<<<<<< HEAD
         return ResponseEntity.ok(ApiResponse.builder()
                 .success(true)
                 .message("Làm mới token thành công!")
                 .data(authResponse)
                 .build());
+=======
+        return ResponseEntity.ok(authResponse);
+>>>>>>> main
     }
 
     @PostMapping("/logout")
