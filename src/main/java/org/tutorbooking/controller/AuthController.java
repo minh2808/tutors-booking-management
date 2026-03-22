@@ -32,19 +32,31 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponse authResponse = authService.loginUser(loginRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công!", authResponse));
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Đăng nhập thành công!")
+                .data(authResponse) 
+                .build());
     }
 
     @PostMapping("/google/login")
     public ResponseEntity<ApiResponse<AuthResponse>> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập bằng Google thành công!", authResponse));
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Đăng nhập Google thành công!")
+                .data(authResponse)
+                .build());
     }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody org.tutorbooking.dto.request.RefreshTokenRequest request) {
         AuthResponse authResponse = authService.refreshToken(request);
-        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công!", authResponse));
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Làm mới token thành công!")
+                .data(authResponse)
+                .build());
     }
 
     @PostMapping("/logout")
