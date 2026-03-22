@@ -26,15 +26,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-<<<<<<< HEAD
-
-=======
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.beans.factory.annotation.Value;
 import java.io.UnsupportedEncodingException;
 import jakarta.mail.MessagingException;
->>>>>>> UPDATE
 import java.util.Collections;
 import java.util.UUID;
 
@@ -62,15 +58,12 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private org.springframework.mail.javamail.JavaMailSender mailSender;
 
-<<<<<<< HEAD
-=======
     @Value("${spring.mail.username}")
     private String senderEmail;
 
     @Value("${frontend.url:http://localhost:3000}") 
     private String frontendUrl;
 
->>>>>>> UPDATE
     @Transactional
     @Override
     public void registerUser(RegisterRequest signUpRequest) {
@@ -242,17 +235,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống"));
 
-<<<<<<< HEAD
-        java.util.Date now = new java.util.Date();
-        java.util.Date expiryDate = new java.util.Date(now.getTime() + 15 * 60 * 1000); 
-=======
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
             throw new RuntimeException("Tài khoản này được đăng nhập bằng Google. Vui lòng sử dụng tính năng Đăng nhập bằng Google!");
         }
 
         java.util.Date now = new java.util.Date();
         java.util.Date expiryDate = new java.util.Date(now.getTime() + 15 * 60 * 1000); // 15 phút
->>>>>>> UPDATE
 
         String resetToken = io.jsonwebtoken.Jwts.builder()
                 .subject(user.getEmail())
@@ -261,15 +249,6 @@ public class AuthServiceImpl implements AuthService {
                 .signWith(jwtTokenProvider.getSigningKey())
                 .compact();
 
-<<<<<<< HEAD
-        org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
-        message.setTo(user.getEmail());
-        message.setSubject("Yêu cầu đặt lại mật khẩu - Tutor Booking");
-        message.setText("Chúng tôi nhận được yêu cầu đặt lại mật khẩu của bạn.\n\n" +
-                "Vui lòng sử dụng mã Token dưới đây (có hiệu lực trong 15 phút) để đổi mật khẩu mới:\n\n" +
-                resetToken + "\n\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.");
-        mailSender.send(message);
-=======
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
         try {
@@ -302,7 +281,6 @@ public class AuthServiceImpl implements AuthService {
             log.error("Lỗi khi gửi email: ", e);
             throw new RuntimeException("Có lỗi xảy ra khi gửi email xác nhận. Vui lòng thử lại sau!");
         }
->>>>>>> UPDATE
     }
 
     @Override
@@ -344,9 +322,4 @@ public class AuthServiceImpl implements AuthService {
         
         userRepository.save(user);
     }
-<<<<<<< HEAD
 }
-=======
-}
-//1
->>>>>>> UPDATE
