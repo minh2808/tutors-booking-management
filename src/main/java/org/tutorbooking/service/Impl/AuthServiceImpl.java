@@ -26,7 +26,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+<<<<<<< HEAD
 
+=======
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
+import java.io.UnsupportedEncodingException;
+import jakarta.mail.MessagingException;
+>>>>>>> UPDATE
 import java.util.Collections;
 import java.util.UUID;
 
@@ -54,6 +62,15 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private org.springframework.mail.javamail.JavaMailSender mailSender;
 
+<<<<<<< HEAD
+=======
+    @Value("${spring.mail.username}")
+    private String senderEmail;
+
+    @Value("${frontend.url:http://localhost:3000}") 
+    private String frontendUrl;
+
+>>>>>>> UPDATE
     @Transactional
     @Override
     public void registerUser(RegisterRequest signUpRequest) {
@@ -225,8 +242,17 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống"));
 
+<<<<<<< HEAD
         java.util.Date now = new java.util.Date();
         java.util.Date expiryDate = new java.util.Date(now.getTime() + 15 * 60 * 1000); 
+=======
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new RuntimeException("Tài khoản này được đăng nhập bằng Google. Vui lòng sử dụng tính năng Đăng nhập bằng Google!");
+        }
+
+        java.util.Date now = new java.util.Date();
+        java.util.Date expiryDate = new java.util.Date(now.getTime() + 15 * 60 * 1000); // 15 phút
+>>>>>>> UPDATE
 
         String resetToken = io.jsonwebtoken.Jwts.builder()
                 .subject(user.getEmail())
@@ -235,6 +261,7 @@ public class AuthServiceImpl implements AuthService {
                 .signWith(jwtTokenProvider.getSigningKey())
                 .compact();
 
+<<<<<<< HEAD
         org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
         message.setTo(user.getEmail());
         message.setSubject("Yêu cầu đặt lại mật khẩu - Tutor Booking");
@@ -242,6 +269,40 @@ public class AuthServiceImpl implements AuthService {
                 "Vui lòng sử dụng mã Token dưới đây (có hiệu lực trong 15 phút) để đổi mật khẩu mới:\n\n" +
                 resetToken + "\n\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.");
         mailSender.send(message);
+=======
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(senderEmail, "GIASUPRO");
+            helper.setTo(user.getEmail());
+            helper.setSubject("Yêu cầu đặt lại mật khẩu - GIASUPRO");
+
+            String htmlContent = "<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">"
+                    + "<h2 style=\"color: #2563eb;\">Xin chào " + user.getFullName() + ",</h2>"
+                    + "<p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại hệ thống <b>GIASUPRO</b>.</p>"
+                    + "<p>Vui lòng nhấn vào nút dưới đây để thiết lập mật khẩu mới (Đường dẫn có hiệu lực trong <b>15 phút</b>):</p>"
+                    + "<div style=\"text-align: center; margin: 30px 0;\">"
+                    + "<a href=\"" + resetLink + "\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Đặt lại mật khẩu</a>"
+                    + "</div>"
+                    + "<p>Nếu nút bấm không hoạt động, bạn có thể copy và dán đường link này vào trình duyệt:</p>"
+                    + "<p style=\"word-break: break-all; color: #2563eb;\">" + resetLink + "</p>"
+                    + "<p><i>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email để đảm bảo an toàn cho tài khoản.</i></p>"
+                    + "<hr style=\"border: none; border-top: 1px solid #eee; margin-top: 30px;\" />"
+                    + "<p style=\"font-size: 12px; color: #999;\">Trân trọng,<br>Đội ngũ hỗ trợ GIASUPRO</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Lỗi khi gửi email: ", e);
+            throw new RuntimeException("Có lỗi xảy ra khi gửi email xác nhận. Vui lòng thử lại sau!");
+        }
+>>>>>>> UPDATE
     }
 
     @Override
@@ -283,4 +344,9 @@ public class AuthServiceImpl implements AuthService {
         
         userRepository.save(user);
     }
+<<<<<<< HEAD
 }
+=======
+}
+//1
+>>>>>>> UPDATE
