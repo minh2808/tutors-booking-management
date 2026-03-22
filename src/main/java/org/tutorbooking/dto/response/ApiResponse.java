@@ -47,10 +47,4 @@ public class ApiResponse<T> {
                 .message(message)
                 .build();
     }
-
-public class ApiResponse {
-    private boolean success;
-    private String message;
-    private Object data;
-
 }
