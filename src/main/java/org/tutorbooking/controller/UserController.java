@@ -15,19 +15,11 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-<<<<<<< HEAD
-=======
-    // 1. API Lấy thông tin cá nhân
->>>>>>> UPDATE
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(Authentication authentication) {
         return ResponseEntity.ok(userService.getMyProfile(authentication.getName()));
     }
 
-<<<<<<< HEAD
-=======
-    // 2. API Cập nhật thông tin cá nhân
->>>>>>> UPDATE
     @PutMapping("/me")
     public ResponseEntity<UserProfileResponse> updateProfile(
             Authentication authentication,
