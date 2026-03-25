@@ -110,38 +110,47 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
-        try {
-            authService.registerUser(signUpRequest);
-            return ResponseEntity
-                    .ok(ApiResponse.builder().success(true).message("Đăng ký tài khoản thành công!").build());
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder().success(false).message(e.getMessage()).build());
-        }
+        authService.registerUser(signUpRequest);
+        return ResponseEntity
+                .ok(ApiResponse.builder().success(true).message("Đăng ký tài khoản thành công!").build());
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        try {
-            AuthResponse authResponse = authService.loginUser(loginRequest);
-            return ResponseEntity.ok(authResponse);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder().success(false).message("Lỗi: " + e.getMessage()).build());
-        }
+        AuthResponse authResponse = authService.loginUser(loginRequest);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Đăng nhập thành công!")
+                .data(authResponse) 
+                .build());
     }
 
     @PostMapping("/google/login")
     public ResponseEntity<?> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
-        try {
-            AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
-            return ResponseEntity.ok(authResponse);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder().success(false).message(e.getMessage()).build());
-        }
+        AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Đăng nhập Google thành công!")
+                .data(authResponse)
+                .build());
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody org.tutorbooking.dto.request.RefreshTokenRequest request) {
+        AuthResponse authResponse = authService.refreshToken(request);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .success(true)
+                .message("Làm mới token thành công!")
+                .data(authResponse)
+                .build());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        authService.logout(auth.getName());
+        
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Đăng xuất thành công!").build());
     }
 
     private void createProfileIfNotExists(org.tutorbooking.domain.entity.User user) {

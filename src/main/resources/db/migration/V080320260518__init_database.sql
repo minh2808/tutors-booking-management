@@ -1,13 +1,10 @@
 
-USE
-tutor_booking ;
-
 -- =====================================================
 -- 1. USERS — Người dùng
 -- =====================================================
 CREATE TABLE users
 (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role          ENUM('admin', 'tutor', 'parent') NOT NULL,
@@ -25,8 +22,8 @@ CREATE TABLE users
 -- =====================================================
 CREATE TABLE tutors
 (
-    id               INT AUTO_INCREMENT PRIMARY KEY,
-    user_id          INT NOT NULL UNIQUE,
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id          BIGINT NOT NULL UNIQUE,
     education_level  ENUM('high_school', 'bachelor', 'master', 'phd', 'other') DEFAULT 'bachelor',
     experience       TEXT,
     qualifications   TEXT,
@@ -45,8 +42,8 @@ CREATE TABLE tutors
 -- =====================================================
 CREATE TABLE parents
 (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT NOT NULL UNIQUE,
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id    BIGINT NOT NULL UNIQUE,
     address    VARCHAR(255),
     district   VARCHAR(100),
     city       VARCHAR(100),
@@ -60,8 +57,8 @@ CREATE TABLE parents
 -- =====================================================
 CREATE TABLE students
 (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    parent_id      INT          NOT NULL,
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    parent_id      BIGINT          NOT NULL,
     full_name      VARCHAR(100) NOT NULL,
     grade          TINYINT      NOT NULL,
     school         VARCHAR(200),
@@ -77,7 +74,7 @@ CREATE TABLE students
 -- =====================================================
 CREATE TABLE subjects
 (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     is_active   BOOLEAN   DEFAULT TRUE,
@@ -90,9 +87,9 @@ CREATE TABLE subjects
 -- =====================================================
 CREATE TABLE tutor_subjects
 (
-    id                INT AUTO_INCREMENT PRIMARY KEY,
-    tutor_id          INT            NOT NULL,
-    subject_id        INT            NOT NULL,
+    id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tutor_id          BIGINT            NOT NULL,
+    subject_id        BIGINT            NOT NULL,
     grade_level       TINYINT        NOT NULL,
     price_per_session DECIMAL(10, 0) NOT NULL,
     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -107,8 +104,8 @@ CREATE TABLE tutor_subjects
 -- =====================================================
 CREATE TABLE tutor_availability
 (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    tutor_id    INT     NOT NULL,
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tutor_id    BIGINT     NOT NULL,
     day_of_week TINYINT NOT NULL,
     start_time  TIME    NOT NULL,
     end_time    TIME    NOT NULL,
@@ -123,9 +120,9 @@ CREATE TABLE tutor_availability
 -- =====================================================
 CREATE TABLE tutor_requests
 (
-    id                INT AUTO_INCREMENT PRIMARY KEY,
-    parent_id         INT     NOT NULL,
-    subject_id        INT     NOT NULL,
+    id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+    parent_id         BIGINT     NOT NULL,
+    subject_id        BIGINT     NOT NULL,
     grade_level       TINYINT NOT NULL,
     desired_price     DECIMAL(10, 0),
     teaching_mode     ENUM('online', 'offline', 'both') DEFAULT 'both',
@@ -145,9 +142,9 @@ CREATE TABLE tutor_requests
 -- =====================================================
 CREATE TABLE tutor_applications
 (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    request_id     INT NOT NULL,
-    tutor_id       INT NOT NULL,
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    request_id     BIGINT NOT NULL,
+    tutor_id       BIGINT NOT NULL,
     proposed_price DECIMAL(10, 0),
     cover_letter   TEXT,
     status         ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
@@ -163,11 +160,11 @@ CREATE TABLE tutor_applications
 -- =====================================================
 CREATE TABLE bookings
 (
-    id                   INT AUTO_INCREMENT PRIMARY KEY,
-    parent_id            INT            NOT NULL,
-    tutor_id             INT            NOT NULL,
-    subject_id           INT            NOT NULL,
-    student_id           INT NULL,
+    id                   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    parent_id            BIGINT            NOT NULL,
+    tutor_id             BIGINT            NOT NULL,
+    subject_id           BIGINT            NOT NULL,
+    student_id           BIGINT NULL,
     grade_level          TINYINT        NOT NULL,
     price_per_session    DECIMAL(10, 0) NOT NULL,
     teaching_mode        ENUM('online', 'offline') NOT NULL,
@@ -191,13 +188,13 @@ CREATE TABLE bookings
 -- =====================================================
 CREATE TABLE sessions
 (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id    INT  NOT NULL,
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    booking_id    BIGINT  NOT NULL,
     session_date  DATE NOT NULL,
     start_time    TIME NOT NULL,
     end_time      TIME NOT NULL,
     status        ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
-    cancelled_by  INT NULL,
+    cancelled_by  BIGINT NULL,
     cancel_reason TEXT,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -210,10 +207,10 @@ CREATE TABLE sessions
 -- =====================================================
 CREATE TABLE reviews
 (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    session_id INT     NOT NULL UNIQUE,
-    parent_id  INT     NOT NULL,
-    tutor_id   INT     NOT NULL,
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id BIGINT     NOT NULL UNIQUE,
+    parent_id  BIGINT     NOT NULL,
+    tutor_id   BIGINT     NOT NULL,
     rating     TINYINT NOT NULL,
     comment    TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -227,10 +224,10 @@ CREATE TABLE reviews
 -- =====================================================
 CREATE TABLE payments
 (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    user_id        INT            NOT NULL,
-    booking_id     INT NULL,
-    request_id     INT NULL,
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id        BIGINT            NOT NULL,
+    booking_id     BIGINT NULL,
+    request_id     BIGINT NULL,
     amount         DECIMAL(12, 0) NOT NULL,
     payment_type   ENUM('class_finding_fee', 'class_receiving_fee') NOT NULL,
     payment_method ENUM('vnpay', 'momo', 'zalopay', 'bank_transfer') NULL,
@@ -249,8 +246,8 @@ CREATE TABLE payments
 -- =====================================================
 CREATE TABLE notifications
 (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    user_id        INT          NOT NULL,
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id        BIGINT          NOT NULL,
     title          VARCHAR(255) NOT NULL,
     content        TEXT,
     type           ENUM(
@@ -267,7 +264,7 @@ CREATE TABLE notifications
     ) NOT NULL,
     is_read        BOOLEAN   DEFAULT FALSE,
     reference_type VARCHAR(50),
-    reference_id   INT NULL,
+    reference_id   BIGINT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
