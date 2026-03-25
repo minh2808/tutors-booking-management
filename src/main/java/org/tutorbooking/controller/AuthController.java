@@ -5,12 +5,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.tutorbooking.dto.request.GoogleLoginRequest;
 import org.tutorbooking.dto.request.RegisterRequest;
 import org.tutorbooking.dto.request.LoginRequest;
 import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.AuthResponse;
+import org.tutorbooking.repository.ParentRepository;
+import org.tutorbooking.repository.TutorRepository;
 import org.tutorbooking.service.AuthService;
 import org.tutorbooking.security.JwtTokenProvider; // Đảm bảo đúng package của bạn
 
@@ -21,14 +25,22 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    @Autowired
+    private TutorRepository tutorRepository;
+
+    @Autowired
+    private ParentRepository parentRepository;
 
     @Autowired
     private AuthService authService;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider; 
+    private JwtTokenProvider jwtTokenProvider;
     @Autowired
     private org.tutorbooking.repository.UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/google-success")
     public ResponseEntity<?> googleSuccess(Authentication authentication) {
@@ -56,7 +68,8 @@ public class AuthController {
                         .email(email)
                         .fullName(name)
                         .avatarUrl(picture)
-                        .role(org.tutorbooking.domain.enums.Role.PARENT) // Mặc định Role
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .role(org.tutorbooking.domain.enums.Role.TUTOR) // Mặc định Role
                         .authProvider(org.tutorbooking.domain.enums.AuthProvider.GOOGLE)
                         .isActive(true)
                         .build();
@@ -64,6 +77,10 @@ public class AuthController {
                 System.out.println(">>> Đã tự động lưu User mới: " + email);
             } else {
                 user = userOptional.get();
+                if (user.getPassword() == null) {
+                    user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    userRepository.save(user);
+                }
             }
 
             // 3. Đóng gói lại thành User chuẩn của Spring Security để tạo JWT
@@ -124,6 +141,37 @@ public class AuthController {
             e.printStackTrace();
             return ResponseEntity.badRequest()
                     .body(ApiResponse.builder().success(false).message(e.getMessage()).build());
+        }
+    }
+
+    private void createProfileIfNotExists(org.tutorbooking.domain.entity.User user) {
+
+        if (user.getRole() == org.tutorbooking.domain.enums.Role.TUTOR) {
+
+            boolean exists = tutorRepository.existsByUserId(user.getId());
+
+            if (!exists) {
+                org.tutorbooking.domain.entity.Tutor tutor = org.tutorbooking.domain.entity.Tutor.builder()
+                        .user(user)
+                        .approvalStatus("pending")
+                        .build();
+
+                tutorRepository.save(tutor);
+                System.out.println(">>> Đã tạo Tutor profile");
+            }
+
+        } else if (user.getRole() == org.tutorbooking.domain.enums.Role.PARENT) {
+
+            boolean exists = parentRepository.existsByUserId(user.getId());
+
+            if (!exists) {
+                org.tutorbooking.domain.entity.Parent parent = org.tutorbooking.domain.entity.Parent.builder()
+                        .user(user)
+                        .build();
+
+                parentRepository.save(parent);
+                System.out.println(">>> Đã tạo Parent profile");
+            }
         }
     }
 }

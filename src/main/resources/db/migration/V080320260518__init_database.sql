@@ -30,7 +30,7 @@ CREATE TABLE tutors
     education_level  ENUM('high_school', 'bachelor', 'master', 'phd', 'other') DEFAULT 'bachelor',
     experience       TEXT,
     qualifications   TEXT,
-    teaching_mode    ENUM('online', 'offline', 'both') NOT NULL DEFAULT 'both',
+    teaching_mode    ENUM('online', 'offline', 'both') DEFAULT 'both', -- lỗi thì sửa not null
     teaching_area    VARCHAR(255),
     approval_status  ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     rejection_reason TEXT,
