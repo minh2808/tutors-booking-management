@@ -23,6 +23,21 @@ public class Tutor {
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, unique = true)
     private User user;
 
+    @Column(name = "education_level")
+    private String educationLevel;
+
+    @Column(name = "experience", columnDefinition = "TEXT")
+    private String experience;
+
+    @Column(name = "qualifications", columnDefinition = "TEXT")
+    private String qualifications;
+
+    @Column(name = "teaching_mode")
+    private String teachingMode;
+
+    @Column(name = "teaching_area")
+    private String teachingArea;
+
     @Column(name = "approval_status")
     private String approvalStatus = "pending";
 
@@ -31,6 +46,7 @@ public class Tutor {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
