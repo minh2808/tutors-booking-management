@@ -35,6 +35,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công!", authResponse));
     }
 
+
     @PostMapping("/google/login")
     public ResponseEntity<ApiResponse<AuthResponse>> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
