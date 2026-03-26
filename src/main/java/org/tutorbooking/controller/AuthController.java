@@ -38,7 +38,13 @@ public class AuthController {
     @PostMapping("/google/login")
     public ResponseEntity<ApiResponse<AuthResponse>> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập bằng Google thành công!", authResponse));
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra đăng nhập Google thành công!", authResponse));
+    }
+
+    @PostMapping("/google/register")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleRegisterUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+        AuthResponse authResponse = authService.googleRegister(googleLoginRequest);
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký tài khoản Google thành công!", authResponse));
     }
 
     @PostMapping("/refresh-token")
