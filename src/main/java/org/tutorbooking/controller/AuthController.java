@@ -153,34 +153,5 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.builder().success(true).message("Đăng xuất thành công!").build());
     }
 
-    private void createProfileIfNotExists(org.tutorbooking.domain.entity.User user) {
 
-        if (user.getRole() == org.tutorbooking.domain.enums.Role.TUTOR) {
-
-            boolean exists = tutorRepository.existsByUserId(user.getId());
-
-            if (!exists) {
-                org.tutorbooking.domain.entity.Tutor tutor = org.tutorbooking.domain.entity.Tutor.builder()
-                        .user(user)
-                        .approvalStatus("pending")
-                        .build();
-
-                tutorRepository.save(tutor);
-                System.out.println(">>> Đã tạo Tutor profile");
-            }
-
-        } else if (user.getRole() == org.tutorbooking.domain.enums.Role.PARENT) {
-
-            boolean exists = parentRepository.existsByUserId(user.getId());
-
-            if (!exists) {
-                org.tutorbooking.domain.entity.Parent parent = org.tutorbooking.domain.entity.Parent.builder()
-                        .user(user)
-                        .build();
-
-                parentRepository.save(parent);
-                System.out.println(">>> Đã tạo Parent profile");
-            }
-        }
-    }
 }
