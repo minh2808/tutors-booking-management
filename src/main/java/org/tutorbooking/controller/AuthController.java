@@ -1,157 +1,86 @@
 package org.tutorbooking.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import org.tutorbooking.dto.request.GoogleLoginRequest;
 import org.tutorbooking.dto.request.RegisterRequest;
 import org.tutorbooking.dto.request.LoginRequest;
+import org.tutorbooking.dto.request.ResetPasswordRequest;
 import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.AuthResponse;
-import org.tutorbooking.repository.ParentRepository;
-import org.tutorbooking.repository.TutorRepository;
 import org.tutorbooking.service.AuthService;
-import org.tutorbooking.security.JwtTokenProvider; // Đảm bảo đúng package của bạn
-
-import java.util.HashMap;
-import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    @Autowired
-    private TutorRepository tutorRepository;
-
-    @Autowired
-    private ParentRepository parentRepository;
 
     @Autowired
     private AuthService authService;
 
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-    @Autowired
-    private org.tutorbooking.repository.UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @GetMapping("/google-success")
-    public ResponseEntity<?> googleSuccess(Authentication authentication) {
-        try {
-            if (authentication == null)
-                return ResponseEntity.status(401).body("Xác thực thất bại");
-
-            String email, name, picture;
-            if (authentication
-                    .getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User oAuth2User) {
-                email = oAuth2User.getAttribute("email");
-                name = oAuth2User.getAttribute("name");
-                picture = oAuth2User.getAttribute("picture");
-            } else {
-                return ResponseEntity.status(401).body("Không lấy được thông tin từ Google");
-            }
-
-            // 1. Kiểm tra xem User đã có trong DB chưa
-            var userOptional = userRepository.findByEmail(email);
-            org.tutorbooking.domain.entity.User user;
-
-            if (userOptional.isEmpty()) {
-                // 2. NẾU CHƯA CÓ -> TỰ ĐỘNG TẠO MỚI (Mặc định là PARENT cho dễ test)
-                user = org.tutorbooking.domain.entity.User.builder()
-                        .email(email)
-                        .fullName(name)
-                        .avatarUrl(picture)
-                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                        .role(org.tutorbooking.domain.enums.Role.TUTOR) // Mặc định Role
-                        .authProvider(org.tutorbooking.domain.enums.AuthProvider.GOOGLE)
-                        .isActive(true)
-                        .build();
-                user = userRepository.save(user);
-                System.out.println(">>> Đã tự động lưu User mới: " + email);
-            } else {
-                user = userOptional.get();
-                if (user.getPassword() == null) {
-                    user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-                    userRepository.save(user);
-                }
-            }
-
-            // 3. Đóng gói lại thành User chuẩn của Spring Security để tạo JWT
-            var authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                    "ROLE_" + user.getRole().name());
-            var userPrincipal = new org.springframework.security.core.userdetails.User(
-                    user.getEmail(), "", java.util.Collections.singletonList(authority));
-
-            var finalAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                    userPrincipal, null, userPrincipal.getAuthorities());
-
-            // 4. Tạo Token
-            String jwt = jwtTokenProvider.generateToken(finalAuth);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("accessToken", jwt);
-            response.put("email", user.getEmail());
-            response.put("role", user.getRole());
-            response.put("message", "Đã lưu user và cấp Token thành công!");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Lỗi: " + e.getMessage());
-        }
-    }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
+    public ResponseEntity<ApiResponse<Void>> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
         authService.registerUser(signUpRequest);
-        return ResponseEntity
-                .ok(ApiResponse.builder().success(true).message("Đăng ký tài khoản thành công!").build());
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký tài khoản thành công!"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponse authResponse = authService.loginUser(loginRequest);
-        return ResponseEntity.ok(ApiResponse.builder()
-                .success(true)
-                .message("Đăng nhập thành công!")
-                .data(authResponse) 
-                .build());
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công!", authResponse));
     }
 
     @PostMapping("/google/login")
-    public ResponseEntity<?> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+    public ResponseEntity<ApiResponse<AuthResponse>> googleAuthenticateUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         AuthResponse authResponse = authService.googleLogin(googleLoginRequest);
-        return ResponseEntity.ok(ApiResponse.builder()
-                .success(true)
-                .message("Đăng nhập Google thành công!")
-                .data(authResponse)
-                .build());
+        return ResponseEntity.ok(ApiResponse.success("Kiểm tra đăng nhập Google thành công!", authResponse));
+    }
+
+    @PostMapping("/google/register")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleRegisterUser(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+        AuthResponse authResponse = authService.googleRegister(googleLoginRequest);
+        return ResponseEntity.ok(ApiResponse.success("Đăng ký tài khoản Google thành công!", authResponse));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@Valid @RequestBody org.tutorbooking.dto.request.RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody org.tutorbooking.dto.request.RefreshTokenRequest request) {
         AuthResponse authResponse = authService.refreshToken(request);
-        return ResponseEntity.ok(ApiResponse.builder()
-                .success(true)
-                .message("Làm mới token thành công!")
-                .data(authResponse)
-                .build());
+        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công!", authResponse));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         authService.logout(auth.getName());
         
-        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Đăng xuất thành công!").build());
+        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công!"));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody org.tutorbooking.dto.request.ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Vui lòng kiểm tra email để nhận mã xác nhận đặt lại mật khẩu."));
+    }
 
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại!"));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody org.tutorbooking.dto.request.ChangePasswordRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName(); 
+
+        authService.changePassword(email, request);
+        
+        return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại."));
+    }
 }
+

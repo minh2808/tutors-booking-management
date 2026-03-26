@@ -127,7 +127,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
     public AuthResponse googleLogin(GoogleLoginRequest googleLoginRequest) {
 
         GoogleIdToken.Payload payload = googleTokenVerifier.verify(googleLoginRequest.getIdToken());
@@ -141,32 +140,11 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
-
-            Role role = googleLoginRequest.getRole() != null ? googleLoginRequest.getRole() : Role.PARENT;
-
-            user = User.builder()
+            return AuthResponse.builder()
+                    .exist(false)
                     .email(email)
                     .fullName(name)
-                    .avatarUrl(pictureUrl)
-                    .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Mật khẩu rác vì mượn acc Google rồi
-                    .role(role)
-                    .authProvider(AuthProvider.GOOGLE)
-                    .isActive(true)
                     .build();
-            user = userRepository.save(user);
-
-            if (role == Role.TUTOR) {
-                Tutor tutor = Tutor.builder()
-                        .user(user)
-                        .approvalStatus("pending")
-                        .build();
-                tutorRepository.save(tutor);
-            } else {
-                Parent parent = Parent.builder()
-                        .user(user)
-                        .build();
-                parentRepository.save(parent);
-            }
         }
 
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
@@ -184,6 +162,74 @@ public class AuthServiceImpl implements AuthService {
         createProfileIfNotExists(user);
 
         return AuthResponse.builder()
+                .exist(true)
+                .token(jwt)
+                .refreshToken(refreshToken)
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse googleRegister(GoogleLoginRequest googleLoginRequest) {
+        GoogleIdToken.Payload payload = googleTokenVerifier.verify(googleLoginRequest.getIdToken());
+        if (payload == null) {
+            throw new RuntimeException("Lỗi: Token Google không hợp lệ hoặc đã hết hạn!");
+        }
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            throw new RuntimeException("Tài khoản đã tồn tại!");
+        }
+
+        Role role = googleLoginRequest.getRole();
+        if (role == null) {
+            throw new RuntimeException("Vui lòng chọn Role!");
+        }
+
+        user = User.builder()
+                .email(email)
+                .fullName(name)
+                .avatarUrl(pictureUrl)
+                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .role(role)
+                .authProvider(AuthProvider.GOOGLE)
+                .isActive(true)
+                .build();
+        user = userRepository.save(user);
+
+        if (role == Role.TUTOR) {
+            Tutor tutor = Tutor.builder()
+                    .user(user)
+                    .approvalStatus("pending")
+                    .build();
+            tutorRepository.save(tutor);
+        } else {
+            Parent parent = Parent.builder()
+                    .user(user)
+                    .build();
+            parentRepository.save(parent);
+        }
+
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        org.springframework.security.core.userdetails.User userPrincipal = new org.springframework.security.core.userdetails.User(
+                user.getEmail(), user.getPassword(), Collections.singletonList(authority));
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtTokenProvider.generateToken(authentication);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        return AuthResponse.builder()
+                .exist(true)
                 .token(jwt)
                 .refreshToken(refreshToken)
                 .email(user.getEmail())

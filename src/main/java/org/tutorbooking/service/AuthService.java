@@ -15,6 +15,7 @@ public interface AuthService {
 
 
     AuthResponse googleLogin(GoogleLoginRequest googleLoginRequest);
+    AuthResponse googleRegister(GoogleLoginRequest googleLoginRequest);
 
     AuthResponse refreshToken(org.tutorbooking.dto.request.RefreshTokenRequest request);
     void logout(String email);
