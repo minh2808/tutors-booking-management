@@ -192,6 +192,32 @@ public class BookingServiceImpl implements BookingService {
         return toBookingResponse(booking, sessionResponses);
     }
 
+    @Override
+    @Transactional
+    public BookingResponse pauseBooking(Long userId, Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (!booking.getParent().getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("You don't have permission to pause this booking");
+        }
+
+        if (booking.getStatus() != BookingStatus.ACTIVE) {
+            throw new IllegalStateException("Only ACTIVE bookings can be paused. Current status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.PAUSED);
+        bookingRepository.save(booking);
+
+        List<Session> pendingSessions = sessionRepository.findByBookingIdAndStatus(bookingId, SessionStatus.PENDING);
+        for (Session session : pendingSessions) {
+            session.setStatus(SessionStatus.CANCELLED);
+        }
+        sessionRepository.saveAll(pendingSessions);
+
+        return toBookingResponse(booking, null);
+    }
+
     private BookingResponse toBookingResponse(Booking booking, List<SessionResponse> sessionResponses) {
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -213,4 +239,3 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 }
-

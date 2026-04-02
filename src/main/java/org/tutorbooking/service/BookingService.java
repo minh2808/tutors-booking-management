@@ -8,5 +8,6 @@ public interface BookingService {
     BookingResponse createBooking(Long userId, BookingCreateRequest request);
     PageResponse<BookingResponse> getBookings(Long userId, String role, int page, int size);
     BookingResponse getBookingById(Long userId, String role, Long bookingId);
+    BookingResponse pauseBooking(Long userId, Long bookingId);
 }
 
