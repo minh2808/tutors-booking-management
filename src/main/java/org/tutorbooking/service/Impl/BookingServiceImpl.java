@@ -8,6 +8,7 @@ import org.tutorbooking.domain.enums.BookingStatus;
 import org.tutorbooking.domain.enums.SessionStatus;
 import org.tutorbooking.dto.request.BookingCreateRequest;
 import org.tutorbooking.dto.response.BookingResponse;
+import org.tutorbooking.dto.response.PageResponse;
 import org.tutorbooking.dto.response.SessionResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
 import org.tutorbooking.repository.*;
@@ -18,6 +19,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -128,14 +134,30 @@ public class BookingServiceImpl implements BookingService {
     }
     
     @Override
-    public List<BookingResponse> getMyBookings(Long userId, String role) {
-        List<Booking> bookings;
-        if ("PARENT".equalsIgnoreCase(role)) {
-            bookings = bookingRepository.findByParent_User_Id(userId);
+    public PageResponse<BookingResponse> getBookings(Long userId, String role, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Booking> bookingPage;
+
+        if ("ADMIN".equalsIgnoreCase(role)) {
+            bookingPage = bookingRepository.findAll(pageable);
+        } else if ("PARENT".equalsIgnoreCase(role)) {
+            bookingPage = bookingRepository.findByParent_User_Id(userId, pageable);
         } else {
-            bookings = bookingRepository.findByTutor_User_Id(userId);
+            bookingPage = bookingRepository.findByTutor_User_Id(userId, pageable);
         }
-        return bookings.stream().map(b -> toBookingResponse(b, null)).collect(Collectors.toList());
+
+        List<BookingResponse> content = bookingPage.getContent().stream()
+                .map(b -> toBookingResponse(b, null))
+                .collect(Collectors.toList());
+
+        return PageResponse.<BookingResponse>builder()
+                .content(content)
+                .page(bookingPage.getNumber())
+                .size(bookingPage.getSize())
+                .totalElements(bookingPage.getTotalElements())
+                .totalPages(bookingPage.getTotalPages())
+                .last(bookingPage.isLast())
+                .build();
     }
 
     @Override
@@ -154,6 +176,7 @@ public class BookingServiceImpl implements BookingService {
                 throw new org.springframework.security.access.AccessDeniedException("You don't have permission to view this booking");
             }
         }
+
         // Load danh sách sessions kèm theo booking
         List<SessionResponse> sessionResponses = sessionRepository.findByBookingId(bookingId)
                 .stream().map(s -> SessionResponse.builder()
@@ -168,14 +191,6 @@ public class BookingServiceImpl implements BookingService {
 
         return toBookingResponse(booking, sessionResponses);
     }
-
-    @Override
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
-                .map(b -> toBookingResponse(b, null))
-                .collect(Collectors.toList());
-    }
-
 
     private BookingResponse toBookingResponse(Booking booking, List<SessionResponse> sessionResponses) {
         return BookingResponse.builder()

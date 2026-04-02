@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.tutorbooking.dto.request.BookingCreateRequest;
 import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.BookingResponse;
+import org.tutorbooking.dto.response.PageResponse;
 import org.tutorbooking.service.BookingService;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -33,18 +32,19 @@ public class BookingController {
                 .body(ApiResponse.success("Booking and sessions created successfully", response));
     }
 
+  
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getBookings(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-    @PreAuthorize("hasAnyRole('PARENT', 'TUTOR')")
-    @GetMapping("/my")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        List<BookingResponse> bookings = bookingService.getMyBookings(userPrincipal.getId(), userPrincipal.getRole());
+        PageResponse<BookingResponse> bookings = bookingService.getBookings(
+                userPrincipal.getId(), userPrincipal.getRole(), page, size);
         return ResponseEntity.ok(ApiResponse.success("Bookings retrieved successfully", bookings));
     }
 
-
-    @PreAuthorize("hasAnyRole('PARENT', 'TUTOR', 'ADMIN')")
+  
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -52,13 +52,5 @@ public class BookingController {
 
         BookingResponse booking = bookingService.getBookingById(userPrincipal.getId(), userPrincipal.getRole(), id);
         return ResponseEntity.ok(ApiResponse.success("Booking retrieved successfully", booking));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getAllBookings() {
-
-        List<BookingResponse> bookings = bookingService.getAllBookings();
-        return ResponseEntity.ok(ApiResponse.success("All bookings retrieved successfully", bookings));
     }
 }
