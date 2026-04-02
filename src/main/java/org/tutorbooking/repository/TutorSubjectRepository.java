@@ -5,6 +5,7 @@ import org.springframework.data.repository.query.Param;
 import org.tutorbooking.domain.entity.TutorSubject;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TutorSubjectRepository extends JpaRepository<TutorSubject, Long> {
 
@@ -21,4 +22,6 @@ public interface TutorSubjectRepository extends JpaRepository<TutorSubject, Long
                 WHERE ts.tutor.id = :tutorId
             """)
     List<TutorSubject> findByTutorIdWithSubject(@Param("tutorId") Long tutorId);
+
+    Optional<TutorSubject> findByTutorIdAndSubjectIdAndGradeLevel(Long tutorId, Long subjectId, Integer gradeLevel);
 }
