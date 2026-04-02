@@ -2,12 +2,11 @@ package org.tutorbooking.service;
 
 import org.tutorbooking.dto.request.BookingCreateRequest;
 import org.tutorbooking.dto.response.BookingResponse;
-
-import java.util.List;
+import org.tutorbooking.dto.response.PageResponse;
 
 public interface BookingService {
     BookingResponse createBooking(Long userId, BookingCreateRequest request);
-    List<BookingResponse> getMyBookings(Long userId, String role);
+    PageResponse<BookingResponse> getBookings(Long userId, String role, int page, int size);
     BookingResponse getBookingById(Long userId, String role, Long bookingId);
-    List<BookingResponse> getAllBookings();
 }
+
