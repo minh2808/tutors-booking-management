@@ -1,6 +1,7 @@
 package org.tutorbooking.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.*;
@@ -177,7 +178,6 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // Load danh sách sessions kèm theo booking
         List<SessionResponse> sessionResponses = sessionRepository.findByBookingId(bookingId)
                 .stream().map(s -> SessionResponse.builder()
                         .id(s.getId())
@@ -199,7 +199,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (!booking.getParent().getUser().getId().equals(userId)) {
-            throw new org.springframework.security.access.AccessDeniedException("You don't have permission to pause this booking");
+            throw new AccessDeniedException("You don't have permission to pause this booking");
         }
 
         if (booking.getStatus() != BookingStatus.ACTIVE) {
@@ -214,6 +214,84 @@ public class BookingServiceImpl implements BookingService {
             session.setStatus(SessionStatus.CANCELLED);
         }
         sessionRepository.saveAll(pendingSessions);
+
+        return toBookingResponse(booking, null);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse resumeBooking(Long userId, Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (!booking.getParent().getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("You don't have permission to resume this booking");
+        }
+
+        if (booking.getStatus() != BookingStatus.PAUSED) {
+            throw new IllegalStateException("Only PAUSED bookings can be resumed. Current status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.ACTIVE);
+        bookingRepository.save(booking);
+
+        List<Session> newSessions = new ArrayList<>();
+        if (booking.getIsRecurring() && booking.getRecurringEndDate() != null) {
+            LocalDate today = LocalDate.now();
+            LocalDate startFrom = today.isAfter(booking.getRecurringStartDate()) ? today : booking.getRecurringStartDate();
+            LocalDate end = booking.getRecurringEndDate();
+
+            LocalDate date = startFrom;
+            while (!date.isAfter(end)) {
+                if (date.getDayOfWeek().getValue() == booking.getDayOfWeek()) {
+                    Session session = Session.builder()
+                            .booking(booking)
+                            .sessionDate(date)
+                            .startTime(booking.getStartTime())
+                            .endTime(booking.getEndTime())
+                            .status(SessionStatus.PENDING)
+                            .build();
+                    newSessions.add(session);
+                }
+                date = date.plusDays(1);
+            }
+            sessionRepository.saveAll(newSessions);
+        }
+
+        return toBookingResponse(booking, null);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse cancelBooking(Long userId, String role, Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        boolean isParent = booking.getParent().getUser().getId().equals(userId);
+        boolean isTutor = booking.getTutor().getUser().getId().equals(userId);
+        if (!isParent && !isTutor) {
+            throw new AccessDeniedException("You don't have permission to cancel this booking");
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Booking is already cancelled");
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        List<Session> pendingSessions = sessionRepository.findByBookingIdAndStatus(bookingId, SessionStatus.PENDING);
+        List<Session> confirmedSessions = sessionRepository.findByBookingIdAndStatus(bookingId, SessionStatus.CONFIRMED);
+
+        for (Session s : pendingSessions) {
+            s.setStatus(SessionStatus.CANCELLED);
+        }
+        for (Session s : confirmedSessions) {
+            s.setStatus(SessionStatus.CANCELLED);
+        }
+
+        sessionRepository.saveAll(pendingSessions);
+        sessionRepository.saveAll(confirmedSessions);
 
         return toBookingResponse(booking, null);
     }

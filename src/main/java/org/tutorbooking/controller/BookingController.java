@@ -63,4 +63,24 @@ public class BookingController {
         BookingResponse response = bookingService.pauseBooking(userPrincipal.getId(), id);
         return ResponseEntity.ok(ApiResponse.success("Booking paused successfully", response));
     }
+
+    @PreAuthorize("hasRole('PARENT')")
+    @PutMapping("/{id}/resume")
+    public ResponseEntity<ApiResponse<BookingResponse>> resumeBooking(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long id) {
+
+        BookingResponse response = bookingService.resumeBooking(userPrincipal.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Booking resumed successfully", response));
+    }
+
+    @PreAuthorize("hasAnyRole('PARENT', 'TUTOR')")
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long id) {
+
+        BookingResponse response = bookingService.cancelBooking(userPrincipal.getId(), userPrincipal.getRole(), id);
+        return ResponseEntity.ok(ApiResponse.success("Booking cancelled successfully", response));
+    }
 }
