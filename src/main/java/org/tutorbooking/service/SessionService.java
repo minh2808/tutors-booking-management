@@ -12,5 +12,6 @@ public interface SessionService {
                                                      SessionStatus status, int page, int size);
     SessionDetailResponse getSessionById(Long userId, String role, Long sessionId);
     SessionDetailResponse confirmSession(Long userId, Long sessionId);
+    SessionDetailResponse completeSession(Long userId, Long sessionId);
     SessionDetailResponse cancelSession(Long userId, Long sessionId, String cancelReason);
 }

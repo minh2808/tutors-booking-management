@@ -59,6 +59,16 @@ public class SessionController {
         return ResponseEntity.ok(ApiResponse.success("Session confirmed successfully", session));
     }
 
+    @PreAuthorize("hasRole('TUTOR')")
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<ApiResponse<SessionDetailResponse>> completeSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long id) {
+
+        SessionDetailResponse session = sessionService.completeSession(userPrincipal.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Session completed successfully", session));
+    }
+
     @PreAuthorize("hasAnyRole('PARENT', 'TUTOR')")
     @PutMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> cancelSession(

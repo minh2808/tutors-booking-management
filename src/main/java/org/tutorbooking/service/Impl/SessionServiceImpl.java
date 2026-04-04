@@ -16,7 +16,10 @@ import org.tutorbooking.dto.response.SessionDetailResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
 import org.tutorbooking.repository.SessionRepository;
 import org.tutorbooking.repository.UserRepository;
+import org.tutorbooking.service.EmailService;
 import org.tutorbooking.service.SessionService;
+
+import java.time.format.DateTimeFormatter;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,6 +31,7 @@ public class SessionServiceImpl implements SessionService {
 
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @Override
     public PageResponse<SessionDetailResponse> getSessions(Long userId, String role,
@@ -92,6 +96,40 @@ public class SessionServiceImpl implements SessionService {
         }
 
         session.setStatus(SessionStatus.CONFIRMED);
+        sessionRepository.save(session);
+
+        // Gửi email bất đồng bộ cho Phụ huynh
+        User parentUser = booking.getParent().getUser();
+        emailService.sendSessionConfirmedEmail(
+                parentUser.getEmail(),
+                parentUser.getFullName(),
+                booking.getTutor().getUser().getFullName(),
+                booking.getSubject().getName(),
+                session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                session.getStartTime().toString(),
+                session.getEndTime().toString()
+        );
+
+        return toDetailResponse(session);
+    }
+
+    @Override
+    @Transactional
+    public SessionDetailResponse completeSession(Long userId, Long sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+        Booking booking = session.getBooking();
+
+        if (!booking.getTutor().getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Only the assigned tutor can complete this session");
+        }
+
+        if (session.getStatus() != SessionStatus.CONFIRMED) {
+            throw new IllegalStateException("Only CONFIRMED sessions can be completed. Current status: " + session.getStatus());
+        }
+
+        session.setStatus(SessionStatus.COMPLETED);
         sessionRepository.save(session);
 
         return toDetailResponse(session);
