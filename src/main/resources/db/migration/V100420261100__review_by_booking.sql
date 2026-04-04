@@ -1,0 +1,12 @@
+SET @fk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'reviews' AND CONSTRAINT_NAME = 'reviews_ibfk_1');
+
+ALTER TABLE reviews DROP COLUMN IF EXISTS session_id;
+ALTER TABLE reviews DROP COLUMN IF EXISTS booking_id;
+
+ALTER TABLE reviews ADD COLUMN booking_id BIGINT NOT NULL AFTER id;
+ALTER TABLE reviews ADD UNIQUE KEY uq_reviews_booking (booking_id);
+ALTER TABLE reviews ADD CONSTRAINT fk_reviews_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE;
+
+ALTER TABLE bookings
+    MODIFY COLUMN status ENUM('ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED') DEFAULT 'ACTIVE';

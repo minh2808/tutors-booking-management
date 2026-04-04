@@ -2,6 +2,7 @@ package org.tutorbooking.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider; 
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -64,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews").permitAll()
                         // Tất cả API còn lại: phải đăng nhập, phân quyền chi tiết ở @PreAuthorize trên method
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
