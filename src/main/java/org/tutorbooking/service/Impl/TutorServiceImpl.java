@@ -1,5 +1,8 @@
+
 package org.tutorbooking.service.Impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -8,14 +11,23 @@ import org.tutorbooking.repository.TutorRepository;
 import org.tutorbooking.repository.TutorSubjectRepository;
 import org.tutorbooking.domain.entity.Tutor;
 import org.tutorbooking.domain.entity.TutorSubject;
+import org.tutorbooking.domain.entity.Review;
 import org.tutorbooking.domain.entity.Subject;
 import org.tutorbooking.dto.request.UpdateTutorRequest;
+import org.tutorbooking.dto.response.ReviewResponse;
 import org.tutorbooking.dto.response.TutorDetailResponse;
+import org.tutorbooking.dto.response.TutorReviewSummaryResponse;
 import org.tutorbooking.dto.request.SubjectRequest;
 import org.tutorbooking.repository.ParentRepository;
 
 import java.util.List;
 import java.util.ArrayList;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+import org.tutorbooking.repository.ReviewRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +35,7 @@ public class TutorServiceImpl implements TutorService {
 
     private final TutorRepository tutorRepository;
     private final TutorSubjectRepository tutorSubjectRepository;
-
+    private final ReviewRepository reviewRepository;
     @Override
     public TutorDetailResponse getTutorDetail(Long tutorId) {
         Tutor tutor = tutorRepository.findDetailById(tutorId)
@@ -103,5 +115,51 @@ public class TutorServiceImpl implements TutorService {
     @Override
     public List<TutorSubject> getSubjects(Long tutorId) {
         return tutorSubjectRepository.findByTutorIdWithSubject(tutorId);
+    }
+
+    @Override
+    public Page<TutorDetailResponse> searchTutors(Long subjectId, Integer grade, Long minPrice, Long maxPrice, String teachingMode, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<Tutor> tutors = tutorRepository.searchApprovedTutors(subjectId, grade, minPrice, maxPrice, teachingMode, pageable);
+        
+        return tutors.map(tutor -> {
+            TutorDetailResponse dto = new TutorDetailResponse();
+            dto.setId(tutor.getId());
+            dto.setFullName(tutor.getUser().getFullName());
+            dto.setAvatarUrl(tutor.getUser().getAvatarUrl());
+            dto.setTeachingMode(tutor.getTeachingMode());
+            dto.setTeachingArea(tutor.getTeachingArea());
+            return dto;
+        });
+    }
+
+    // =========================================
+    // LẤY ĐÁNH GIÁ (REVIEW) CHUẨN VỚI DTO CỦA BẠN
+    // =========================================
+    @Override
+    public TutorReviewSummaryResponse getTutorReviews(Long tutorId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        
+        Double avgRating = reviewRepository.getAverageRatingByTutorId(tutorId);
+        long totalReviews = reviewRepository.countByTutorId(tutorId);
+        
+        Page<Review> reviewPage = reviewRepository.findByTutorId(tutorId, pageable);
+        
+        Page<ReviewResponse> reviewDtos = reviewPage.map(review -> ReviewResponse.builder()
+                .id(review.getId())
+                .bookingId(review.getBooking().getId()) 
+                .parentName(review.getParent().getUser().getFullName())
+                .tutorName(review.getTutor().getUser().getFullName()) 
+                .subjectName(review.getBooking().getSubject().getName())
+                .rating(review.getRating())
+                .comment(review.getComment())
+                .createdAt(review.getCreatedAt())
+                .build());
+
+        return TutorReviewSummaryResponse.builder()
+                .averageRating(Math.round(avgRating * 10.0) / 10.0)
+                .totalReviews(totalReviews)
+                .reviews(reviewDtos)
+                .build();
     }
 }
