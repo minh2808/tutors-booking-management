@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider; 
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Autowired; 
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
 
@@ -57,9 +57,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                
-                .authenticationProvider(authenticationProvider()) 
-                
+
+                .authenticationProvider(authenticationProvider())
+
                 .authorizeHttpRequests(auth -> auth
                         // PUBLIC
                         .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
@@ -71,8 +71,7 @@ public class SecurityConfig {
                         // Tất cả API còn lại: phải đăng nhập, phân quyền chi tiết ở @PreAuthorize trên method
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl("/api/auth/google-success", true) 
-                );
+                        .defaultSuccessUrl("/api/auth/google-success", true));
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
@@ -89,7 +88,7 @@ public class SecurityConfig {
                 "null" // Dùng khi mở trực tiếp file HTML trên trình duyệt (file:///)
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*")) ;
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
