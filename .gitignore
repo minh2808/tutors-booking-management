@@ -32,6 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 **/application-local.properties 
-### Môi tru?ng và AI ###
+
 .brain/
-application-local.properties
+
+CHANGELOG.md

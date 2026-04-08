@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnExpression("!'${spring.ai.openai.api-key:}'.isEmpty()")
 public class TutorIndexingService {
 
     private final TutorRepository tutorRepository;
