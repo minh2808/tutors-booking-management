@@ -82,7 +82,9 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
                 "https://tutors-booking-management-fe.vercel.app",
-                "http://localhost:8080" 
+                "http://localhost:8080"
+//                "http://127.0.0.1:5500", // Dùng cho VS Code Live Server
+//                "null" // Dùng khi mở trực tiếp file HTML trên trình duyệt (file:///)
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*")) ;
