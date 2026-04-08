@@ -59,5 +59,16 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
             @Param("teachingMode") String teachingMode,
             Pageable pageable
     );
+
+    @Query(value = """
+                SELECT t FROM Tutor t
+                JOIN FETCH t.user
+                WHERE t.approvalStatus = 'pending'
+            """,
+            countQuery = """
+                SELECT COUNT(t) FROM Tutor t
+                WHERE t.approvalStatus = 'pending'
+            """)
+    Page<Tutor> findPendingTutors(Pageable pageable);
 }
 

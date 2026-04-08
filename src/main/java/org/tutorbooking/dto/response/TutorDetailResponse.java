@@ -19,4 +19,6 @@ public class TutorDetailResponse {
     private String teachingMode;
     private String teachingArea;
     private String approvalStatus;
+
+    private String rejectionReason;
 }

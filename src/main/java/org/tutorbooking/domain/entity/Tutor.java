@@ -47,6 +47,9 @@ public class Tutor {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

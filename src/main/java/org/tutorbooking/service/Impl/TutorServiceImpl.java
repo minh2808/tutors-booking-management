@@ -133,9 +133,7 @@ public class TutorServiceImpl implements TutorService {
         });
     }
 
-    // =========================================
-    // LẤY ĐÁNH GIÁ (REVIEW) CHUẨN VỚI DTO CỦA BẠN
-    // =========================================
+    
     @Override
     public TutorReviewSummaryResponse getTutorReviews(Long tutorId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -161,5 +159,58 @@ public class TutorServiceImpl implements TutorService {
                 .totalReviews(totalReviews)
                 .reviews(reviewDtos)
                 .build();
+    }
+
+    // =========================================
+    // CỤM CHỨC NĂNG DÀNH CHO ADMIN
+    // =========================================
+    @Override
+    public Page<TutorDetailResponse> getPendingTutors(int page, int size) {
+        // Lấy danh sách chờ duyệt, sắp xếp người đăng ký cũ lên trước (để duyệt trước)
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Page<Tutor> tutors = tutorRepository.findPendingTutors(pageable);
+
+        return tutors.map(tutor -> {
+            TutorDetailResponse dto = new TutorDetailResponse();
+            dto.setId(tutor.getId());
+            dto.setFullName(tutor.getUser().getFullName());
+            dto.setAvatarUrl(tutor.getUser().getAvatarUrl());
+            dto.setEmail(tutor.getUser().getEmail());
+            dto.setEducationLevel(tutor.getEducationLevel());
+            dto.setExperience(tutor.getExperience());
+            dto.setQualifications(tutor.getQualifications());
+            dto.setTeachingMode(tutor.getTeachingMode());
+            dto.setTeachingArea(tutor.getTeachingArea());
+            dto.setApprovalStatus(tutor.getApprovalStatus());
+            return dto;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void approveTutor(Long tutorId) {
+        Tutor tutor = tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư"));
+        
+        if (!"pending".equals(tutor.getApprovalStatus())) {
+            throw new RuntimeException("Hồ sơ này không ở trạng thái chờ duyệt!");
+        }
+        
+        tutor.setApprovalStatus("approved");
+        tutor.setRejectionReason(null); // Xóa lý do từ chối cũ (nếu có)
+    }
+
+    @Override
+    @Transactional
+    public void rejectTutor(Long tutorId, String reason) {
+        Tutor tutor = tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư"));
+        
+        if (!"pending".equals(tutor.getApprovalStatus())) {
+            throw new RuntimeException("Hồ sơ này không ở trạng thái chờ duyệt!");
+        }
+        
+        tutor.setApprovalStatus("rejected");
+        tutor.setRejectionReason(reason);
     }
 }
