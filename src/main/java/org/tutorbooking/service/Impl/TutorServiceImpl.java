@@ -2,6 +2,7 @@
 package org.tutorbooking.service.Impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.tutorbooking.exception.ResourceNotFoundException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,11 @@ public class TutorServiceImpl implements TutorService {
     @Override
     public TutorDetailResponse getTutorDetail(Long tutorId) {
         Tutor tutor = tutorRepository.findDetailById(tutorId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy gia sư với id: " + tutorId));
+
+        if (!"approved".equals(tutor.getApprovalStatus())) {
+            throw new ResourceNotFoundException("Hồ sơ gia sư chưa được duyệt");
+        }
 
         TutorDetailResponse res = new TutorDetailResponse();
 
@@ -63,7 +68,7 @@ public class TutorServiceImpl implements TutorService {
     @Override
     public Tutor getMyProfile(Long userId) {
         return tutorRepository.findByUserIdWithUser(userId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư"));
     }
 
 
@@ -72,7 +77,7 @@ public class TutorServiceImpl implements TutorService {
     public void updateProfile(Long userId, UpdateTutorRequest req) {
 
         Tutor tutor = tutorRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư"));
 
         tutor.setEducationLevel(req.getEducationLevel());
         tutor.setExperience(req.getExperience());
@@ -87,7 +92,7 @@ public class TutorServiceImpl implements TutorService {
     public void updateSubjects(Long userId, List<SubjectRequest> reqs) {
 
         Tutor tutor = tutorRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư"));
 
         tutorSubjectRepository.deleteByTutorId(tutor.getId());
 
