@@ -11,7 +11,10 @@ import org.tutorbooking.domain.entity.User;
 import org.tutorbooking.dto.request.UpdateTutorRequest;
 import org.tutorbooking.dto.request.SubjectRequest;
 import org.tutorbooking.dto.request.UpdateProfileRequest;
+import org.tutorbooking.dto.response.ApiResponse;
+import org.tutorbooking.dto.response.AuthResponse;
 import org.tutorbooking.dto.response.TutorDetailResponse;
+import org.tutorbooking.dto.response.TutorReviewSummaryResponse;
 import org.tutorbooking.dto.response.UserProfileResponse;
 import org.tutorbooking.repository.UserRepository;
 import org.tutorbooking.service.TutorService;
@@ -19,7 +22,7 @@ import org.tutorbooking.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
+import org.springframework.data.domain.Page;
 import java.util.List;
 
 @RestController
@@ -49,8 +52,8 @@ public class TutorController {
     //     return tutorService.getMyProfile(user.getId());
     // }
     @GetMapping("/me")
-    public Tutor getMyProfile(@AuthenticationPrincipal UserPrincipal user) {
-        return tutorService.getMyProfile(user.getId()); // Chạy vèo vèo
+    public ResponseEntity<ApiResponse<Tutor>> getMyProfile(@AuthenticationPrincipal UserPrincipal user) {
+        return ResponseEntity.ok(ApiResponse.success("thành công", tutorService.getMyProfile(user.getId()))); // Chạy vèo vèo
     }
 
     // =========================================
@@ -100,5 +103,35 @@ public class TutorController {
     @GetMapping("/{id}/subjects")
     public List<TutorSubject> getSubjects(@PathVariable Long id) {
         return tutorService.getSubjects(id);
+    }
+
+    // =========================================
+    // 6. TÌM KIẾM & LỌC GIA SƯ ĐÃ DUYỆT (PUBLIC)
+    // =========================================
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<TutorDetailResponse>>> searchTutors(
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Integer grade,
+            @RequestParam(required = false) Long minPrice,
+            @RequestParam(required = false) Long maxPrice,
+            @RequestParam(required = false) String teachingMode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<TutorDetailResponse> result = tutorService.searchTutors(subjectId, grade, minPrice, maxPrice, teachingMode, page, size);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách gia sư thành công", result));
+    }
+
+    // =========================================
+    // 7. XEM ĐÁNH GIÁ & SỐ SAO CỦA 1 GIA SƯ (PUBLIC)
+    // =========================================
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<ApiResponse<TutorReviewSummaryResponse>> getTutorReviews(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        TutorReviewSummaryResponse result = tutorService.getTutorReviews(id, page, size);
+        return ResponseEntity.ok(ApiResponse.success("Lấy đánh giá thành công", result));
     }
 }
