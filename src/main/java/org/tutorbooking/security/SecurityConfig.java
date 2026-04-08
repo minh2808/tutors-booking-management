@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tutors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tutors/*/reviews").permitAll()
                         // Tất cả API còn lại: phải đăng nhập, phân quyền chi tiết ở @PreAuthorize trên method
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2

@@ -1,4 +1,4 @@
-package org.tutorbooking.service.impl;
+package org.tutorbooking.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
