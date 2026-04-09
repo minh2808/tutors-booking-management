@@ -346,30 +346,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
-    @Override
-    @Transactional
-    public void changePassword(String email, org.tutorbooking.dto.request.ChangePasswordRequest request) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng trong hệ thống."));
 
-        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            throw new RuntimeException("Tài khoản liên kết với Google không thể đổi mật khẩu theo cách này!");
-        }
-
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu cũ không chính xác!");
-        }
-
-        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu hiện tại!");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        
-        user.setRefreshToken(null); 
-        
-        userRepository.save(user);
-    }
 
 
     @Override

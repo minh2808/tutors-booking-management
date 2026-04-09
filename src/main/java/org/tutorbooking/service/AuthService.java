@@ -22,8 +22,5 @@ public interface AuthService {
     void forgotPassword(org.tutorbooking.dto.request.ForgotPasswordRequest request);
     void resetPassword(org.tutorbooking.dto.request.ResetPasswordRequest request);
     void createProfileIfNotExists(org.tutorbooking.domain.entity.User user);
-
-    @Transactional
-    void changePassword(String email, org.tutorbooking.dto.request.ChangePasswordRequest request);
 }
 
