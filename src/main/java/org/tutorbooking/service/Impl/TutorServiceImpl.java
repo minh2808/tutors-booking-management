@@ -94,7 +94,7 @@ public class TutorServiceImpl implements TutorService {
     private TutorDetailResponse mapToTutorDetailResponse(Tutor tutor) {
         TutorDetailResponse res = new TutorDetailResponse();
         res.setId(tutor.getId());
-        
+
         // Map User Info
         if (tutor.getUser() != null) {
             res.setFullName(tutor.getUser().getFullName());
@@ -111,11 +111,12 @@ public class TutorServiceImpl implements TutorService {
         res.setApprovalStatus(tutor.getApprovalStatus());
 
         return res;
+    }
     // =========================================
     // CỤM CHỨC NĂNG DÀNH CHO ADMIN
     // =========================================
     @Override
-    public Page<TutorDetailResponse> getPendingTutors(int page, int size) {
+    public Page<TutorDetailResponse> getPendingTutors (int page, int size) {
         // Lấy danh sách chờ duyệt, sắp xếp người đăng ký cũ lên trước (để duyệt trước)
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         Page<Tutor> tutors = tutorRepository.findPendingTutors(pageable);
