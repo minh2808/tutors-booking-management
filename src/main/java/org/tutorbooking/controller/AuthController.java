@@ -73,14 +73,5 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại!"));
     }
 
-    @PostMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody org.tutorbooking.dto.request.ChangePasswordRequest request) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName(); 
-
-        authService.changePassword(email, request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại."));
-    }
 }
 

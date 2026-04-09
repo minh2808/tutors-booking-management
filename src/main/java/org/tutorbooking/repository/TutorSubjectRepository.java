@@ -8,10 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TutorSubjectRepository extends JpaRepository<TutorSubject, Long> {
-
-    // xoá hết subject của tutor
-    void deleteByTutorId(Long tutorId);
-
+ 
     // lấy thường (không có subject)
     List<TutorSubject> findByTutorId(Long tutorId);
 
@@ -24,4 +21,6 @@ public interface TutorSubjectRepository extends JpaRepository<TutorSubject, Long
     List<TutorSubject> findByTutorIdWithSubject(@Param("tutorId") Long tutorId);
 
     Optional<TutorSubject> findByTutorIdAndSubjectIdAndGradeLevel(Long tutorId, Long subjectId, Integer gradeLevel);
+
+    boolean existsBySubjectId(Long subjectId);
 }
