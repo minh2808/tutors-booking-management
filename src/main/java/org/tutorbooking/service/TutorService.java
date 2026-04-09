@@ -13,4 +13,8 @@ public interface TutorService {
     Page<TutorDetailResponse> searchTutors(Long subjectId, Integer grade, Long minPrice, Long maxPrice, String teachingMode, int page, int size);
 
     TutorReviewSummaryResponse getTutorReviews(Long tutorId, int page, int size);
+
+    Page<TutorDetailResponse> getPendingTutors(int page, int size);
+    void approveTutor(Long tutorId);
+    void rejectTutor(Long tutorId, String reason);
 }
