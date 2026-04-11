@@ -22,14 +22,20 @@ public class TutorController {
 
     private final TutorService tutorService;
 
-    // #7. XEM CHI TIẾT HỒ SƠ CÔNG KHAI (PUBLIC)
+    @PreAuthorize("hasRole('TUTOR')")
+    @GetMapping("/my-profile")
+    public ResponseEntity<ApiResponse<TutorDetailResponse>> getMyTutorProfile(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity
+                .ok(ApiResponse.success("Lấy hồ sơ cá nhân thành công", tutorService.getMyTutorProfile(principal.getId())));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TutorDetailResponse>> getTutorDetail(@PathVariable Long id) {
         return ResponseEntity
                 .ok(ApiResponse.success("Lấy thông tin chi tiết gia sư thành công", tutorService.getTutorDetail(id)));
     }
 
-    // #8. GS CẬP NHẬT HỒ SƠ CHUYÊN MÔN (GS)
     @PreAuthorize("hasRole('TUTOR')")
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<Void>> updateProfile(
@@ -40,7 +46,6 @@ public class TutorController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật hồ sơ chuyên môn thành công"));
     }
 
-    // TÌM KIẾM & LỌC GIA SƯ ĐÃ DUYỆT
     @GetMapping
     public ResponseEntity<ApiResponse<Page<TutorDetailResponse>>> searchTutors(
             @RequestParam(required = false) Long subjectId,
@@ -55,7 +60,6 @@ public class TutorController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách gia sư thành công", result));
     }
 
-    // XEM ĐÁNH GIÁ & SỐ SAO
     @GetMapping("/{id}/reviews")
     public ResponseEntity<ApiResponse<TutorReviewSummaryResponse>> getTutorReviews(
             @PathVariable Long id,

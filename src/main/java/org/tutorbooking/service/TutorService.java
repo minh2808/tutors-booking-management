@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 
 public interface TutorService {
     TutorDetailResponse getTutorDetail(Long tutorId);
+    
+    TutorDetailResponse getMyTutorProfile(Long userId);
 
     void updateProfile(Long userId, UpdateTutorRequest req);
 

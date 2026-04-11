@@ -33,7 +33,15 @@ public class TutorServiceImpl implements TutorService {
         if (!"approved".equals(tutor.getApprovalStatus())) {
             throw new ResourceNotFoundException("Hồ sơ gia sư này chưa được phê duyệt công khai.");
         }
+        return mapToTutorDetailResponse(tutor);
+    }
 
+    @Override
+    public TutorDetailResponse getMyTutorProfile(Long userId) {
+        Tutor tutor = tutorRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư."));
+        
+        // Không kiểm tra trạng thái approval để gia sư luôn có thể xem hồ sơ của mình
         return mapToTutorDetailResponse(tutor);
     }
 
@@ -87,21 +95,17 @@ public class TutorServiceImpl implements TutorService {
                 .build();
     }
 
-    /**
-     * Map Tutor entity to TutorDetailResponse DTO consistently.
-     */
+
     private TutorDetailResponse mapToTutorDetailResponse(Tutor tutor) {
         TutorDetailResponse res = new TutorDetailResponse();
         res.setId(tutor.getId());
 
-        // Map User Info
         if (tutor.getUser() != null) {
             res.setFullName(tutor.getUser().getFullName());
             res.setAvatarUrl(tutor.getUser().getAvatarUrl());
             res.setEmail(tutor.getUser().getEmail());
         }
 
-        // Map Tutor Info
         res.setEducationLevel(tutor.getEducationLevel());
         res.setExperience(tutor.getExperience());
         res.setQualifications(tutor.getQualifications());
@@ -111,12 +115,10 @@ public class TutorServiceImpl implements TutorService {
 
         return res;
     }
-    // =========================================
-    // CỤM CHỨC NĂNG DÀNH CHO ADMIN
-    // =========================================
+
     @Override
     public Page<TutorDetailResponse> getPendingTutors (int page, int size) {
-        // Lấy danh sách chờ duyệt, sắp xếp người đăng ký cũ lên trước (để duyệt trước)
+
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         Page<Tutor> tutors = tutorRepository.findPendingTutors(pageable);
 
