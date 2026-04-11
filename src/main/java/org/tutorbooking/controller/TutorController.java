@@ -37,7 +37,7 @@ public class TutorController {
     }
 
     @PreAuthorize("hasRole('TUTOR')")
-    @PutMapping("/profile")
+    @PutMapping("/my-profile")
     public ResponseEntity<ApiResponse<Void>> updateProfile(
             Authentication authentication,
             @Valid @RequestBody UpdateTutorRequest req) {
@@ -54,9 +54,11 @@ public class TutorController {
             @RequestParam(required = false) Long maxPrice,
             @RequestParam(required = false) String teachingMode,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDirection) {
         Page<TutorDetailResponse> result = tutorService.searchTutors(subjectId, grade, minPrice, maxPrice, teachingMode,
-                page, size);
+                page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách gia sư thành công", result));
     }
 
@@ -64,8 +66,9 @@ public class TutorController {
     public ResponseEntity<ApiResponse<TutorReviewSummaryResponse>> getTutorReviews(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-        TutorReviewSummaryResponse result = tutorService.getTutorReviews(id, page, size);
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) Integer rating) {
+        TutorReviewSummaryResponse result = tutorService.getTutorReviews(id, rating, page, size);
         return ResponseEntity.ok(ApiResponse.success("Lấy đánh giá thành công", result));
     }
 }

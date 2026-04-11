@@ -10,6 +10,7 @@ import org.tutorbooking.domain.entity.Review;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByBookingId(Long bookingId);
     Page<Review> findByTutorId(Long tutorId, Pageable pageable);
+    Page<Review> findByTutorIdAndRating(Long tutorId, Integer rating, Pageable pageable);
 
     @Query("SELECT COALESCE(AVG(r.rating), 0.0) FROM Review r WHERE r.tutor.id = :tutorId")
     Double getAverageRatingByTutorId(@Param("tutorId") Long tutorId);
