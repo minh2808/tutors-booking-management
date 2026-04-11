@@ -6,13 +6,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.User;
 import org.tutorbooking.dto.request.UpdateProfileRequest;
 import org.tutorbooking.dto.response.UserProfileResponse;
+import org.tutorbooking.dto.request.ChangePasswordRequest;
 import org.tutorbooking.repository.UserRepository;
 import org.tutorbooking.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.tutorbooking.domain.enums.AuthProvider;
 import org.springframework.web.multipart.MultipartFile;
+import org.tutorbooking.service.CloudinaryService;
 import java.io.IOException;
-import java.util.Base64;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -22,6 +23,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     @Override
     public UserProfileResponse getMyProfile(String email) {
@@ -46,7 +50,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy người dùng!"));
 
-        // Cập nhật thông tin
         user.setFullName(request.getFullName());
         user.setPhone(request.getPhone());
 
@@ -73,13 +76,11 @@ public class UserServiceImpl implements UserService {
         }
 
         try {
-            // Lưu ảnh dưới dạng Base64 URL (data URI)
-            String mimeType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
-            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
-            user.setAvatarUrl("data:" + mimeType + ";base64," + base64);
+            String imageUrl = cloudinaryService.uploadImage(file);
+            user.setAvatarUrl(imageUrl);
             userRepository.save(user);
         } catch (IOException e) {
-            throw new RuntimeException("Không thể xử lý file ảnh: " + e.getMessage());
+            throw new RuntimeException("Không thể xử lý và tải ảnh lên phần mềm lưu trữ: " + e.getMessage());
         }
 
         return UserProfileResponse.builder()
@@ -94,7 +95,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void changePassword(String email, org.tutorbooking.dto.request.ChangePasswordRequest request) {
+    public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng trong hệ thống."));
 
