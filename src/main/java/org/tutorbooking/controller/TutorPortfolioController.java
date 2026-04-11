@@ -23,15 +23,12 @@ public class TutorPortfolioController {
 
     private final TutorPortfolioService portfolioService;
 
-    // --- Cấu hình Môn dạy & Giá ---
 
-    // #9. Xem DS môn + giá theo từng lớp của 1 GS cụ thể (Không Auth)
     @GetMapping("/{id}/subjects")
     public ResponseEntity<ApiResponse<List<TutorSubjectResponse>>> getTutorSubjects(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách môn dạy thành công", portfolioService.getTutorSubjects(id)));
     }
 
-    // #10. GS thêm môn dạy + giá (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @PostMapping("/subjects")
     public ResponseEntity<ApiResponse<TutorSubjectResponse>> addTutorSubject(
@@ -41,7 +38,6 @@ public class TutorPortfolioController {
                 portfolioService.addTutorSubject(principal.getId(), request)));
     }
 
-    // #11. GS sửa giá cho môn/lớp đã đăng ký (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @PutMapping("/subjects/{subjectId}")
     public ResponseEntity<ApiResponse<TutorSubjectResponse>> updateTutorSubject(
@@ -52,7 +48,6 @@ public class TutorPortfolioController {
                 portfolioService.updateTutorSubject(principal.getId(), subjectId, request)));
     }
 
-    // #12. GS xóa 1 môn khỏi danh sách dịch vụ (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @DeleteMapping("/subjects/{subjectId}")
     public ResponseEntity<ApiResponse<Void>> removeTutorSubject(
@@ -63,15 +58,12 @@ public class TutorPortfolioController {
     }
 
 
-    // --- Cấu hình Lịch rảnh ---
 
-    // #13. Xem khung giờ rảnh của GS theo ngày trong tuần (Không Auth)
     @GetMapping("/{id}/availability")
     public ResponseEntity<ApiResponse<List<TutorAvailabilityResponse>>> getTutorAvailability(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch rảnh thành công", portfolioService.getTutorAvailability(id)));
     }
 
-    // #14. GS thêm khung giờ rảnh (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @PostMapping("/availability")
     public ResponseEntity<ApiResponse<TutorAvailabilityResponse>> addTutorAvailability(
@@ -81,7 +73,6 @@ public class TutorPortfolioController {
                 portfolioService.addTutorAvailability(principal.getId(), request)));
     }
 
-    // #15. GS sửa khung giờ rảnh đã đăng ký (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @PutMapping("/availability/{availabilityId}")
     public ResponseEntity<ApiResponse<TutorAvailabilityResponse>> updateTutorAvailability(
@@ -92,7 +83,6 @@ public class TutorPortfolioController {
                 portfolioService.updateTutorAvailability(principal.getId(), availabilityId, request)));
     }
 
-    // #16. GS xóa khung giờ rảnh (Yêu cầu role GS)
     @PreAuthorize("hasRole('TUTOR')")
     @DeleteMapping("/availability/{availabilityId}")
     public ResponseEntity<ApiResponse<Void>> removeTutorAvailability(

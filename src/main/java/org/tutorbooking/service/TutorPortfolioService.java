@@ -9,7 +9,6 @@ import java.util.List;
 
 public interface TutorPortfolioService {
 
-    // --- Tutor Subject ---
     List<TutorSubjectResponse> getTutorSubjects(Long tutorId);
 
     TutorSubjectResponse addTutorSubject(Long userId, TutorSubjectRequest request);
@@ -18,7 +17,6 @@ public interface TutorPortfolioService {
 
     void removeTutorSubject(Long userId, Long subjectId);
 
-    // --- Tutor Availability ---
     List<TutorAvailabilityResponse> getTutorAvailability(Long tutorId);
 
     TutorAvailabilityResponse addTutorAvailability(Long userId, TutorAvailabilityRequest request);

@@ -31,12 +31,37 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
 
     private Tutor getTutorByUserId(Long userId) {
         return tutorRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found for user ID: " + userId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư cho User ID: " + userId));
     }
 
     private Tutor getTutorById(Long tutorId) {
         return tutorRepository.findById(tutorId)
-                .orElseThrow(() -> new RuntimeException("Tutor not found with ID: " + tutorId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư với ID: " + tutorId));
+    }
+
+    private Tutor getApprovedTutorById(Long tutorId) {
+        Tutor tutor = getTutorById(tutorId);
+        if (!"approved".equals(tutor.getApprovalStatus())) {
+            throw new RuntimeException("Hồ sơ gia sư này chưa được phê duyệt công khai");
+        }
+        return tutor;
+    }
+
+    private void validateTimeOverlap(Long tutorId, Integer dayOfWeek, java.time.LocalTime startTime, java.time.LocalTime endTime, Long excludeId) {
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+            throw new RuntimeException("Khung giờ không hợp lệ (Start time phải diễn ra trước End time)");
+        }
+        
+        List<TutorAvailability> existing = tutorAvailabilityRepository.findByTutorIdAndIsActiveTrue(tutorId)
+                .stream().filter(a -> a.getDayOfWeek().equals(dayOfWeek) 
+                        && (excludeId == null || !a.getId().equals(excludeId)))
+                .collect(Collectors.toList());
+
+        for (TutorAvailability a : existing) {
+            if (startTime.isBefore(a.getEndTime()) && endTime.isAfter(a.getStartTime())) {
+                throw new RuntimeException(String.format("Lịch bị trùng với khung giờ đã đăng ký trước đó (%s - %s)", a.getStartTime(), a.getEndTime()));
+            }
+        }
     }
 
     private TutorSubjectResponse mapToTutorSubjectResponse(TutorSubject tutorSubject) {
@@ -64,8 +89,8 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     @Override
     @Transactional(readOnly = true)
     public List<TutorSubjectResponse> getTutorSubjects(Long tutorId) {
-        // verify tutor exists
-        getTutorById(tutorId);
+        // verify tutor exists and is approved
+        getApprovedTutorById(tutorId);
         
         List<TutorSubject> subjects = tutorSubjectRepository.findByTutorIdWithSubject(tutorId);
         return subjects.stream().map(this::mapToTutorSubjectResponse).collect(Collectors.toList());
@@ -76,10 +101,10 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     public TutorSubjectResponse addTutorSubject(Long userId, TutorSubjectRequest request) {
         Tutor tutor = getTutorByUserId(userId);
         Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học này trên hệ thống"));
 
         if (tutorSubjectRepository.findByTutorIdAndSubjectIdAndGradeLevel(tutor.getId(), subject.getId(), request.getGradeLevel()).isPresent()) {
-            throw new RuntimeException("This subject and grade level is already registered by the tutor");
+            throw new RuntimeException("Môn học và khối lớp này đã được bạn đăng ký trước đó");
         }
 
         TutorSubject tutorSubject = TutorSubject.builder()
@@ -99,10 +124,21 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     public TutorSubjectResponse updateTutorSubject(Long userId, Long tutorSubjectId, TutorSubjectRequest request) {
         Tutor tutor = getTutorByUserId(userId);
         TutorSubject tutorSubject = tutorSubjectRepository.findById(tutorSubjectId)
-                .orElseThrow(() -> new RuntimeException("Tutor subject entry not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu đăng ký môn học"));
 
         if (!tutorSubject.getTutor().getId().equals(tutor.getId())) {
-            throw new RuntimeException("You do not have permission to modify this entry");
+            throw new RuntimeException("Bạn không có quyền chỉnh sửa mục chuyên môn này");
+        }
+
+        if (!tutorSubject.getGradeLevel().equals(request.getGradeLevel())) {
+            boolean exists = tutorSubjectRepository.findByTutorIdAndSubjectIdAndGradeLevel(
+                    tutor.getId(), 
+                    tutorSubject.getSubject().getId(), 
+                    request.getGradeLevel()
+            ).isPresent();
+            if (exists) {
+                throw new RuntimeException("Môn học và khối lớp này đã được bạn đăng ký trước đó");
+            }
         }
 
         tutorSubject.setGradeLevel(request.getGradeLevel());
@@ -118,10 +154,10 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     public void removeTutorSubject(Long userId, Long tutorSubjectId) {
         Tutor tutor = getTutorByUserId(userId);
         TutorSubject tutorSubject = tutorSubjectRepository.findById(tutorSubjectId)
-                .orElseThrow(() -> new RuntimeException("Tutor subject entry not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu đăng ký môn học"));
 
         if (!tutorSubject.getTutor().getId().equals(tutor.getId())) {
-            throw new RuntimeException("You do not have permission to delete this entry");
+            throw new RuntimeException("Bạn không có quyền xóa mục chuyên môn này");
         }
 
         tutorSubjectRepository.delete(tutorSubject);
@@ -132,7 +168,7 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     @Override
     @Transactional(readOnly = true)
     public List<TutorAvailabilityResponse> getTutorAvailability(Long tutorId) {
-        getTutorById(tutorId);
+        getApprovedTutorById(tutorId);
         List<TutorAvailability> availabilities = tutorAvailabilityRepository.findByTutorIdAndIsActiveTrue(tutorId);
         
         return availabilities.stream().map(this::mapToTutorAvailabilityResponse).collect(Collectors.toList());
@@ -142,6 +178,8 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     @Transactional
     public TutorAvailabilityResponse addTutorAvailability(Long userId, TutorAvailabilityRequest request) {
         Tutor tutor = getTutorByUserId(userId);
+        
+        validateTimeOverlap(tutor.getId(), request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), null);
 
         TutorAvailability availability = TutorAvailability.builder()
                 .tutor(tutor)
@@ -161,11 +199,13 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     public TutorAvailabilityResponse updateTutorAvailability(Long userId, Long availabilityId, TutorAvailabilityRequest request) {
         Tutor tutor = getTutorByUserId(userId);
         TutorAvailability availability = tutorAvailabilityRepository.findById(availabilityId)
-                .orElseThrow(() -> new RuntimeException("Availability entry not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu khung giờ rảnh"));
 
         if (!availability.getTutor().getId().equals(tutor.getId())) {
-            throw new RuntimeException("You do not have permission to modify this entry");
+            throw new RuntimeException("Bạn không có quyền chỉnh sửa khung giờ này");
         }
+
+        validateTimeOverlap(tutor.getId(), request.getDayOfWeek(), request.getStartTime(), request.getEndTime(), availability.getId());
 
         availability.setDayOfWeek(request.getDayOfWeek());
         availability.setStartTime(request.getStartTime());
@@ -184,10 +224,10 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
     public void removeTutorAvailability(Long userId, Long availabilityId) {
         Tutor tutor = getTutorByUserId(userId);
         TutorAvailability availability = tutorAvailabilityRepository.findById(availabilityId)
-                .orElseThrow(() -> new RuntimeException("Availability entry not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu khung giờ rảnh"));
 
         if (!availability.getTutor().getId().equals(tutor.getId())) {
-            throw new RuntimeException("You do not have permission to delete this entry");
+            throw new RuntimeException("Bạn không có quyền xóa khung giờ này");
         }
 
         tutorAvailabilityRepository.delete(availability);
