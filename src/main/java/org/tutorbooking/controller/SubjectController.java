@@ -19,20 +19,17 @@ public class SubjectController {
 
     private final SubjectService subjectService;
 
-    // #23: Lấy danh sách tất cả môn học (Public)
     @GetMapping
     public ResponseEntity<ApiResponse<List<Subject>>> getAllSubjects() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách môn học thành công", subjectService.getAllSubjects()));
     }
 
-    // #24: Admin tạo môn học mới
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<Subject>> createSubject(@Valid @RequestBody SubjectCreateRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo môn học thành công", subjectService.createSubject(request)));
     }
 
-    // #25: Admin sửa thông tin môn học
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Subject>> updateSubject(
@@ -41,7 +38,6 @@ public class SubjectController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật môn học thành công", subjectService.updateSubject(id, request)));
     }
 
-    // #26: Admin xóa môn học
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteSubject(@PathVariable Long id) {
