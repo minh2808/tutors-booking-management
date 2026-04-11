@@ -51,23 +51,39 @@ public class TutorServiceImpl implements TutorService {
         Tutor tutor = tutorRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư để cập nhật."));
 
+        boolean needsReapproval = false;
+        if (!req.getEducationLevel().equals(tutor.getEducationLevel()) || 
+            !req.getQualifications().equals(tutor.getQualifications())) {
+            needsReapproval = true;
+        }
+
         tutor.setEducationLevel(req.getEducationLevel());
         tutor.setExperience(req.getExperience());
         tutor.setQualifications(req.getQualifications());
         tutor.setTeachingMode(req.getTeachingMode());
         tutor.setTeachingArea(req.getTeachingArea());
+
+        if (needsReapproval) {
+            tutor.setApprovalStatus("pending");
+            tutor.setRejectionReason(null);
+        }
     }
 
     @Override
-    public Page<TutorDetailResponse> searchTutors(Long subjectId, Integer grade, Long minPrice, Long maxPrice, String teachingMode, int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size);
+    public Page<TutorDetailResponse> searchTutors(Long subjectId, Integer grade, Long minPrice, Long maxPrice, String teachingMode, int page, int size, String sortBy, String sortDirection) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt"); // default
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            Sort.Direction dir = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+            sort = Sort.by(dir, sortBy);
+        }
+        PageRequest pageable = PageRequest.of(page, size, sort);
         Page<Tutor> tutors = tutorRepository.searchApprovedTutors(subjectId, grade, minPrice, maxPrice, teachingMode, pageable);
         return tutors.map(this::mapToTutorDetailResponse);
     }
 
     
     @Override
-    public TutorReviewSummaryResponse getTutorReviews(Long tutorId, int page, int size) {
+    public TutorReviewSummaryResponse getTutorReviews(Long tutorId, Integer rating, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
         Double avgRating = reviewRepository.getAverageRatingByTutorId(tutorId);
@@ -75,7 +91,12 @@ public class TutorServiceImpl implements TutorService {
         
         long totalReviews = reviewRepository.countByTutorId(tutorId);
         
-        Page<Review> reviewPage = reviewRepository.findByTutorId(tutorId, pageable);
+        Page<Review> reviewPage;
+        if (rating != null) {
+            reviewPage = reviewRepository.findByTutorIdAndRating(tutorId, rating, pageable);
+        } else {
+            reviewPage = reviewRepository.findByTutorId(tutorId, pageable);
+        }
         
         Page<ReviewResponse> reviewDtos = reviewPage.map(review -> ReviewResponse.builder()
                 .id(review.getId())
