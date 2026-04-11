@@ -141,6 +141,13 @@
             <version>0.12.5</version>
         </dependency>
 
+        <!-- Cloudinary -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.38.0</version>
+        </dependency>
+
 
     </dependencies>
 
