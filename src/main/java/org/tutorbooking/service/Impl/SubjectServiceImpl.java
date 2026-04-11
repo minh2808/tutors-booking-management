@@ -29,6 +29,10 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     @Transactional
     public Subject createSubject(SubjectCreateRequest request) {
+        if (subjectRepository.existsByName(request.getName())) {
+            throw new RuntimeException("Tên môn học này đã tồn tại trên hệ thống");
+        }
+
         Subject subject = Subject.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -42,6 +46,10 @@ public class SubjectServiceImpl implements SubjectService {
         Subject subject = subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id));
 
+        if (!subject.getName().equalsIgnoreCase(request.getName()) && subjectRepository.existsByName(request.getName())) {
+            throw new RuntimeException("Tên môn học này đã tồn tại trên hệ thống");
+        }
+
         subject.setName(request.getName());
         subject.setDescription(request.getDescription());
 
@@ -54,7 +62,6 @@ public class SubjectServiceImpl implements SubjectService {
         Subject subject = subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id));
 
-        // Kiểm tra xem môn học này có gia sư nào đang đăng ký dạy không
         boolean isUsed = tutorSubjectRepository.existsBySubjectId(id);
         if (isUsed) {
             throw new RuntimeException("Không thể xóa. Hiện đang có gia sư đăng ký dạy môn học này.");

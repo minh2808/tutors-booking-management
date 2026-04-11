@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.tutorbooking.service.EmailService;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 
 @Slf4j
 @Service
@@ -63,6 +64,42 @@ public class EmailServiceImpl implements EmailService {
 
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.error("Failed to send confirmation email to {}: ", toEmail, e);
+        }
+    }
+
+    @Async
+    @Override
+    public void sendApplicationNotificationEmail(String toEmail, String parentName, String tutorName, String subjectName, BigDecimal proposedPrice) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(senderEmail, "GIASUPRO");
+            helper.setTo(toEmail);
+            helper.setSubject("Tin Vui - Có Gia sư mới nộp hồ sơ xin dạy môn " + subjectName);
+
+            String htmlContent = "<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">"
+                    + "<h2 style=\"color: #0284c7;\">Xin chào " + parentName + ",</h2>"
+                    + "<p>Gia sư <b>" + tutorName + "</b> vừa mới nộp hồ sơ xin nhận lớp của bạn.</p>"
+                    + "<table style=\"border-collapse: collapse; width: 100%; max-width: 500px; margin: 20px 0;\">"
+                    + "<tr style=\"background-color: #f0f9ff;\">"
+                    + "<td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Môn học</td>"
+                    + "<td style=\"padding: 10px; border: 1px solid #ddd;\">" + subjectName + "</td></tr>"
+                    + "<tr><td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Mức lương đề xuất</td>"
+                    + "<td style=\"padding: 10px; border: 1px solid #ddd; color: #ea580c; font-weight: bold;\">" + proposedPrice + " VNĐ/Buổi</td></tr>"
+                    + "</table>"
+                    + "<p>Hãy đăng nhập ngay vào hệ thống để xem chi tiết Profile của gia sư và đưa ra quyết định nhé!</p>"
+                    + "<hr style=\"border: none; border-top: 1px solid #eee; margin-top: 30px;\" />"
+                    + "<p style=\"font-size: 12px; color: #999;\">Trân trọng,<br>Đội ngũ hỗ trợ GIASUPRO</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+
+            log.info("Application notification email sent to: {}", toEmail);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Failed to send application notification email to {}: ", toEmail, e);
         }
     }
 }

@@ -20,7 +20,6 @@ public class AdminController {
 
     private final TutorService tutorService;
 
-    // 1. Xem danh sách chờ duyệt
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<Page<TutorDetailResponse>>> getPendingTutors(
             @RequestParam(defaultValue = "0") int page,
@@ -28,14 +27,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chờ duyệt thành công", tutorService.getPendingTutors(page, size)));
     }
 
-    // 2. Duyệt gia sư 
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<Void>> approveTutor(@PathVariable Long id) {
         tutorService.approveTutor(id);
         return ResponseEntity.ok(ApiResponse.success("Đã duyệt hồ sơ gia sư thành công!"));
     }
 
-    // 3. Từ chối gia sư
     @PostMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<Void>> rejectTutor(
             @PathVariable Long id,
