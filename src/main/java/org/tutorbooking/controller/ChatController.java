@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+
 import org.springframework.web.bind.annotation.*;
 import org.tutorbooking.dto.request.ChatRequest;
 import org.tutorbooking.dto.response.ApiResponse;
@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
-@ConditionalOnExpression("!'${spring.ai.openai.api-key:}'.isEmpty()")
+
 public class ChatController {
 
     private final ChatService chatService;

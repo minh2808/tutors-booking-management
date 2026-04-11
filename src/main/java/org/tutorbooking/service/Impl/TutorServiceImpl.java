@@ -54,7 +54,6 @@ public class TutorServiceImpl implements TutorService {
     public Page<TutorDetailResponse> searchTutors(Long subjectId, Integer grade, Long minPrice, Long maxPrice, String teachingMode, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         Page<Tutor> tutors = tutorRepository.searchApprovedTutors(subjectId, grade, minPrice, maxPrice, teachingMode, pageable);
-        
         return tutors.map(this::mapToTutorDetailResponse);
     }
 

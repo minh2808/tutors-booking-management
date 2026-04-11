@@ -10,7 +10,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.ChatMessage;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnExpression("!'${spring.ai.openai.api-key:}'.isEmpty()")
+
 public class ChatServiceImpl implements ChatService {
 
     private final ChatClient.Builder chatClientBuilder;

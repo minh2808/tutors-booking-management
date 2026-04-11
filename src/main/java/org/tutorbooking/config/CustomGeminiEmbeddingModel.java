@@ -7,7 +7,7 @@ import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.embedding.EmbeddingResponseMetadata;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Primary
-@ConditionalOnExpression("!'${spring.ai.openai.api-key:}'.isEmpty()")
+
 public class CustomGeminiEmbeddingModel implements EmbeddingModel {
 
     @Value("${spring.ai.openai.api-key:}")
