@@ -10,6 +10,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.Review;
 import org.tutorbooking.domain.entity.Tutor;
 import org.tutorbooking.domain.entity.TutorSubject;
@@ -33,7 +34,9 @@ public class TutorIndexingService {
     private final VectorStore vectorStore;
 
     @Async
-    @EventListener(ApplicationReadyEvent.class)
+    // Tạm thời tắt tự động chạy AI Indexing theo yêu cầu
+    // @EventListener(ApplicationReadyEvent.class)
+    @Transactional(readOnly = true)
     public void indexAllTutors() {
         log.info("Starting background indexing of tutor profiles to VectorStore...");
         

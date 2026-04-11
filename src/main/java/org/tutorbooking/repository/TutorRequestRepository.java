@@ -29,6 +29,17 @@ public interface TutorRequestRepository extends JpaRepository<TutorRequest, Long
             """)
     Optional<TutorRequest> findDetailById(@Param("id") Long id);
 
+    // Lấy danh sách yêu cầu theo danh sách status
+    @Query("""
+            SELECT tr FROM TutorRequest tr
+            JOIN FETCH tr.subject
+            JOIN FETCH tr.parent p
+            JOIN FETCH p.user
+            WHERE tr.status IN :statuses
+            ORDER BY tr.createdAt DESC
+            """)
+    List<TutorRequest> findByStatusIn(@Param("statuses") List<TutorRequestStatus> statuses);
+
     // Lấy danh sách yêu cầu theo status
     List<TutorRequest> findByStatus(TutorRequestStatus status);
 

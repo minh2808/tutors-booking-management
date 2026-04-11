@@ -31,7 +31,7 @@ public class CustomGeminiEmbeddingModel implements EmbeddingModel {
     private String apiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=";
+    private final String url = "https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=";
 
     @Override
     public float[] embed(Document document) {

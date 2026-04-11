@@ -69,6 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tutors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tutors/*/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/subjects/**").permitAll()
                         // Tất cả API còn lại: phải đăng nhập, phân quyền chi tiết ở @PreAuthorize trên method
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2

@@ -13,6 +13,7 @@ import org.tutorbooking.dto.response.TutorApplicationResponse;
 import org.tutorbooking.dto.response.TutorRequestResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
 import org.tutorbooking.repository.*;
+import org.tutorbooking.service.EmailService;
 import org.tutorbooking.service.TutorRequestService;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     private final ParentRepository parentRepository;
     private final TutorRepository tutorRepository;
     private final SubjectRepository subjectRepository;
+    private final EmailService emailService;
 
     @Override
     public TutorRequest createRequest(Long parentId, TutorRequestCreateRequest req) {
@@ -47,7 +49,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .preferredArea(req.getPreferredArea())
                 .scheduleNote(req.getScheduleNote())
                 .sessionsPerWeek(req.getSessionsPerWeek() != null ? req.getSessionsPerWeek() : 1)
-                .status(TutorRequestStatus.PENDING)
+                .status(TutorRequestStatus.SEARCHING)
                 .build();
 
         return tutorRequestRepository.save(tutorRequest);
@@ -128,7 +130,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<TutorRequestResponse> getAllRequests() {
-        List<TutorRequest> requests = tutorRequestRepository.findByStatus(TutorRequestStatus.SEARCHING);
+        List<TutorRequest> requests = tutorRequestRepository.findByStatusIn(List.of(TutorRequestStatus.SEARCHING, TutorRequestStatus.HAS_APPLICANTS));
 
         return requests.stream().map(tr -> {
             long applicantsCount = tutorApplicationRepository.countByRequestId(tr.getId());
@@ -144,11 +146,19 @@ public class TutorRequestServiceImpl implements TutorRequestService {
         Tutor tutor = tutorRepository.findById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
 
+        if (!"approved".equals(tutor.getApprovalStatus())) {
+             throw new RuntimeException("Tài khoản gia sư chưa được phê duyệt, không thể ứng tuyển");
+        }
+
+        if (tutorRequest.getStatus() == TutorRequestStatus.MATCHED || tutorRequest.getStatus() == TutorRequestStatus.CANCELLED) {
+             throw new RuntimeException("Bài tuyển dụng đã đóng hoặc đã nhận đủ gia sư");
+        }
+
         if (tutorApplicationRepository.existsByRequestIdAndTutorId(requestId, tutorId)) {
             throw new RuntimeException("Bạn đã ứng tuyển cho yêu cầu này rồi");
         }
 
-        if (tutorRequest.getStatus() == TutorRequestStatus.PENDING) {
+        if (tutorRequest.getStatus() == TutorRequestStatus.SEARCHING) {
             tutorRequest.setStatus(TutorRequestStatus.HAS_APPLICANTS);
             tutorRequestRepository.save(tutorRequest);
         }
@@ -161,7 +171,22 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .status(TutorApplicationStatus.PENDING)
                 .build();
 
-        return tutorApplicationRepository.save(application);
+        application = tutorApplicationRepository.save(application);
+
+        String parentEmail = tutorRequest.getParent().getUser().getEmail();
+        if (parentEmail == null || parentEmail.trim().isEmpty()) {
+            throw new RuntimeException("Vui lòng đăng kí email để nhận thông báo");
+        }
+
+        emailService.sendApplicationNotificationEmail(
+                parentEmail,
+                tutorRequest.getParent().getUser().getFullName(),
+                tutor.getUser().getFullName(),
+                tutorRequest.getSubject().getName(),
+                req.getProposedPrice()
+        );
+
+        return application;
     }
 
     @Override
