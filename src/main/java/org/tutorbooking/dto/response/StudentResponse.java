@@ -4,18 +4,19 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.tutorbooking.domain.enums.Role;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileResponse {
+public class StudentResponse {
     private Long id;
-    private String email;
     private String fullName;
-    private String phone;
-    private String address;
-    private String avatarUrl;
-    private Role role; 
+    private Byte grade;
+    private String school;
+    private String academicLevel;
+    private String specialNotes;
+    private LocalDateTime createdAt;
 }
