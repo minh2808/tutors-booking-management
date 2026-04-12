@@ -11,5 +11,7 @@ public interface BookingService {
     BookingResponse pauseBooking(Long userId, Long bookingId);
     BookingResponse resumeBooking(Long userId, Long bookingId);
     BookingResponse cancelBooking(Long userId, String role, Long bookingId);
+    BookingResponse acceptBookingByTutor(Long userId, Long bookingId);
+    void activateBooking(Long bookingId);
 }
 

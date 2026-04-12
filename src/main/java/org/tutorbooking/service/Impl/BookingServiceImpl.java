@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.*;
 import org.tutorbooking.domain.enums.BookingStatus;
+import org.tutorbooking.domain.enums.PaymentMethod;
+import org.tutorbooking.domain.enums.PaymentStatus;
+import org.tutorbooking.domain.enums.PaymentType;
 import org.tutorbooking.domain.enums.SessionStatus;
 import org.tutorbooking.dto.request.BookingCreateRequest;
 import org.tutorbooking.dto.response.BookingResponse;
@@ -39,6 +42,7 @@ public class BookingServiceImpl implements BookingService {
     private final StudentRepository studentRepository;
     private final TutorSubjectRepository tutorSubjectRepository;
     private final EmailService emailService;
+    private final PaymentRepository paymentRepository;
 
     @Override
     @Transactional
@@ -76,7 +80,7 @@ public class BookingServiceImpl implements BookingService {
                 .isRecurring(request.getIsRecurring())
                 .recurringStartDate(request.getRecurringStartDate())
                 .recurringEndDate(request.getRecurringEndDate())
-                .status(BookingStatus.ACTIVE)
+                .status(BookingStatus.WAITING_TUTOR_CONFIRM) // <-- OPTION 2: Chưa sinh Session, chỉ chờ Gia sư CONFIRM
                 .schedules(new ArrayList<>())
                 .build();
 
@@ -92,84 +96,168 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
+        // KIỂM TRA ĐÈ LỊCH TRƯỚC (DỰ ĐOÁN)
+        validateSchedulesOverlap(booking);
+
         Booking savedBooking = bookingRepository.save(booking);
 
-        List<Session> generatedSessions = new ArrayList<>();
+        // Bắn email báo gia sư
+        emailService.sendBookingStatusChangedEmail(
+                tutor.getUser().getEmail(),
+                tutor.getUser().getFullName(),
+                subject.getName(),
+                "WAITING_TUTOR_CONFIRM"
+        );
 
-        if (Boolean.TRUE.equals(request.getIsRecurring())) {
-            LocalDate start = request.getRecurringStartDate();
-            LocalDate end = request.getRecurringEndDate();
+        return toBookingResponse(savedBooking, new ArrayList<>());
+    }
+    
+    // GIA SƯ BẤM ĐỒNG Ý -> TẠO HÓA ĐƠN KÉP
+    @Transactional
+    public BookingResponse acceptBookingByTutor(Long userId, Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hợp đồng"));
+
+        if (!booking.getTutor().getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Chỉ gia sư của hợp đồng này mới có quyền Xác nhận");
+        }
+
+        if (booking.getStatus() != BookingStatus.WAITING_TUTOR_CONFIRM) {
+            throw new IllegalStateException("Hợp đồng này không ở trạng thái chờ xác nhận");
+        }
+
+        // 1. Chuyển sang chờ thanh toán
+        booking.setStatus(BookingStatus.PENDING_PAYMENTS);
+        bookingRepository.save(booking);
+
+        // 2. Tạo hóa đơn 10k cho Phụ huynh (Phí Môi Giới)
+        Payment parentPayment = Payment.builder()
+                .user(booking.getParent().getUser())
+                .booking(booking)
+                .amount(new BigDecimal("10000")) // FIXED 10k Nhu Sếp Yêu Cầu
+                .paymentType(PaymentType.CLASS_FINDING_FEE)
+                .paymentMethod(PaymentMethod.BANK_TRANSFER) // Dai dien cho PayOS VietQR
+                .status(PaymentStatus.PENDING)
+                .build();
+        paymentRepository.save(parentPayment);
+
+        // 3. Tạo hóa đơn 10k cho Gia sư (Phí Nhận Lớp)
+        Payment tutorPayment = Payment.builder()
+                .user(booking.getTutor().getUser())
+                .booking(booking)
+                .amount(new BigDecimal("10000")) // FIXED 10k Nhu Sếp Yêu Cầu
+                .paymentType(PaymentType.CLASS_RECEIVING_FEE)
+                .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                .status(PaymentStatus.PENDING)
+                .build();
+        paymentRepository.save(tutorPayment);
+
+        // Bắn Email báo nộp tiền cho Phụ Huynh
+        emailService.sendBookingStatusChangedEmail(
+                booking.getParent().getUser().getEmail(),
+                booking.getParent().getUser().getFullName(),
+                booking.getSubject().getName(),
+                "PENDING_PAYMENTS"
+        );
+
+        return toBookingResponse(booking, new ArrayList<>());
+    }
+
+    // WEBHOOK SẼ GỌI HÀM NÀY KHI ĐỦ 2 HÓA ĐƠN COMPLETED
+    @Transactional
+    public void activateBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+        booking.setStatus(BookingStatus.ACTIVE);
+        bookingRepository.save(booking);
+        
+        List<Session> newSessions = generateSessionsForBooking(booking);
+        sessionRepository.saveAll(newSessions);
+        
+        emailService.sendBookingStatusChangedEmail(
+                booking.getTutor().getUser().getEmail(),
+                booking.getTutor().getUser().getFullName(),
+                booking.getSubject().getName(),
+                "ACTIVE"
+        );
+    }
+
+    private void validateSchedulesOverlap(Booking booking) {
+        if (Boolean.TRUE.equals(booking.getIsRecurring())) {
+            LocalDate start = booking.getRecurringStartDate();
+            LocalDate end = booking.getRecurringEndDate();
             if (start == null || end == null) {
-                throw new IllegalArgumentException("Hợp đồng định kỳ yêu cầu phải có Ngày bắt đầu và Ngày kết thúc");
+                throw new IllegalArgumentException("Hợp đồng định kỳ yêu cầu Ngày bắt đầu và kết thúc");
             }
-
-            for (BookingSchedule sched : savedBooking.getSchedules()) {
+            for (BookingSchedule sched : booking.getSchedules()) {
                 List<LocalDate> datesForThisSched = new ArrayList<>();
                 LocalDate date = start;
                 while (!date.isAfter(end)) {
                     if (date.getDayOfWeek().getValue() == sched.getDayOfWeek()) {
                         datesForThisSched.add(date);
-                        Session session = Session.builder()
-                                .booking(savedBooking)
-                                .sessionDate(date)
-                                .startTime(sched.getStartTime())
-                                .endTime(sched.getEndTime())
-                                .status(SessionStatus.PENDING)
-                                .build();
-                        generatedSessions.add(session);
                     }
                     date = date.plusDays(1);
                 }
                 if (!datesForThisSched.isEmpty()) {
                     boolean hasOverlap = sessionRepository.existsOverlappingSessions(
-                            request.getTutorId(), datesForThisSched, sched.getStartTime(), sched.getEndTime());
+                            booking.getTutor().getId(), datesForThisSched, sched.getStartTime(), sched.getEndTime());
                     if (hasOverlap) {
                         throw new IllegalStateException("Gia sư đã có lịch vào Thứ " + (sched.getDayOfWeek() == 7 ? "Chủ Nhật" : (sched.getDayOfWeek() + 1)) + " (" + sched.getStartTime() + " - " + sched.getEndTime() + "). Vui lòng chọn ca hoặc gia sư khác");
                     }
                 }
             }
         } else {
-            LocalDate singleDate = request.getRecurringStartDate();
+            LocalDate singleDate = booking.getRecurringStartDate();
             if (singleDate == null) {
-                throw new IllegalArgumentException("Hợp đồng một buổi yêu cầu phải có Ngày bắt đầu (recurringStartDate)");
+                throw new IllegalArgumentException("Hợp đồng 1 buổi yêu cầu Ngày bắt đầu");
             }
-
-            for (BookingSchedule sched : savedBooking.getSchedules()) {
+            for (BookingSchedule sched : booking.getSchedules()) {
                 if (singleDate.getDayOfWeek().getValue() != sched.getDayOfWeek()) {
-                    throw new IllegalArgumentException("Ngày bắt đầu không khớp với Thứ đã chọn trong lịch trình");
+                    throw new IllegalArgumentException("Ngày bắt đầu không khớp Thứ trong lịch trình");
                 }
-
                 boolean hasOverlap = sessionRepository.existsOverlappingSessions(
-                        request.getTutorId(), List.of(singleDate), sched.getStartTime(), sched.getEndTime());
+                        booking.getTutor().getId(), List.of(singleDate), sched.getStartTime(), sched.getEndTime());
                 if (hasOverlap) {
-                    throw new IllegalStateException("Gia sư đã có lịch vào lúc " + sched.getStartTime() + " - " + sched.getEndTime() + " ngày " + singleDate + ". Vui lòng chọn ca khác");
+                    throw new IllegalStateException("Gia sư đã có lịch vào " + sched.getStartTime() + " " + singleDate + ". Vui lòng chọn ca khác");
                 }
+            }
+        }
+    }
 
-                Session session = Session.builder()
-                        .booking(savedBooking)
+    private List<Session> generateSessionsForBooking(Booking booking) {
+        List<Session> generatedSessions = new ArrayList<>();
+        if (Boolean.TRUE.equals(booking.getIsRecurring())) {
+            LocalDate start = booking.getRecurringStartDate();
+            LocalDate end = booking.getRecurringEndDate();
+            for (BookingSchedule sched : booking.getSchedules()) {
+                LocalDate date = start;
+                while (!date.isAfter(end)) {
+                    if (date.getDayOfWeek().getValue() == sched.getDayOfWeek()) {
+                        generatedSessions.add(Session.builder()
+                                .booking(booking)
+                                .sessionDate(date)
+                                .startTime(sched.getStartTime())
+                                .endTime(sched.getEndTime())
+                                .status(SessionStatus.PENDING)
+                                .build());
+                    }
+                    date = date.plusDays(1);
+                }
+            }
+        } else {
+            LocalDate singleDate = booking.getRecurringStartDate();
+            for (BookingSchedule sched : booking.getSchedules()) {
+                generatedSessions.add(Session.builder()
+                        .booking(booking)
                         .sessionDate(singleDate)
                         .startTime(sched.getStartTime())
                         .endTime(sched.getEndTime())
                         .status(SessionStatus.PENDING)
-                        .build();
-                generatedSessions.add(session);
+                        .build());
             }
         }
-
-        List<Session> savedSessions = sessionRepository.saveAll(generatedSessions);
-
-        List<SessionResponse> sessionResponses = savedSessions.stream().map(s -> SessionResponse.builder()
-                .id(s.getId())
-                .bookingId(s.getBooking().getId())
-                .sessionDate(s.getSessionDate())
-                .startTime(s.getStartTime())
-                .endTime(s.getEndTime())
-                .status(s.getStatus())
-                .build()).collect(Collectors.toList());
-
-        return toBookingResponse(savedBooking, sessionResponses);
+        return generatedSessions;
     }
-    
+
     @Override
     public PageResponse<BookingResponse> getBookings(Long userId, String role, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -343,7 +431,6 @@ public class BookingServiceImpl implements BookingService {
         sessionRepository.saveAll(pendingSessions);
         sessionRepository.saveAll(confirmedSessions);
 
-        // Bắn Email Báo Động cho Phía Bị Hủy (Nạn nhân còn lại)
         User receiver = isParent ? booking.getTutor().getUser() : booking.getParent().getUser();
         emailService.sendBookingStatusChangedEmail(
                 receiver.getEmail(),
