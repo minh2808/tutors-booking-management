@@ -33,18 +33,18 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse createReview(Long userId, ReviewCreateRequest request) {
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin Lịch học/Booking này."));
 
         if (!booking.getParent().getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Only the parent of this booking can create a review");
+            throw new AccessDeniedException("Bạn không có quyền đánh giá! Chỉ phụ huynh đặt lịch này mới được phép đánh giá.");
         }
 
         if (booking.getStatus() != BookingStatus.COMPLETED) {
-            throw new IllegalStateException("Only COMPLETED bookings can be reviewed. Current status: " + booking.getStatus());
+            throw new IllegalStateException("Chỉ được phép đánh giá khi lịch học đã HOÀN THÀNH. Trạng thái hiện tại: " + booking.getStatus());
         }
 
         if (reviewRepository.existsByBookingId(request.getBookingId())) {
-            throw new IllegalStateException("This booking has already been reviewed");
+            throw new IllegalStateException("Lịch học này đã được bạn đánh giá rồi, không thể đánh giá lại.");
         }
 
         Review review = Review.builder()

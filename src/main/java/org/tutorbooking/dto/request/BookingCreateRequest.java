@@ -1,5 +1,7 @@
 package org.tutorbooking.dto.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.tutorbooking.domain.enums.TeachingMode;
@@ -27,16 +29,23 @@ public class BookingCreateRequest {
 
     private Boolean isRecurring = false;
 
-    // 1=Monday...7=Sunday
-    private Integer dayOfWeek;
+    @NotEmpty(message = "Bạn chưa chọn khung giờ nào")
+    @Valid
+    private java.util.List<ScheduleItem> schedules;
 
-    @NotNull(message = "Start time is required")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
-    private LocalTime startTime;
+    @Data
+    public static class ScheduleItem {
+        @NotNull(message = "Day of week cannot be null")
+        private Integer dayOfWeek;
 
-    @NotNull(message = "End time is required")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
-    private LocalTime endTime;
+        @NotNull(message = "Start time is required")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
+        private LocalTime startTime;
+
+        @NotNull(message = "End time is required")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
+        private LocalTime endTime;
+    }
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate recurringStartDate;

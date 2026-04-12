@@ -54,15 +54,8 @@ public class Booking {
     @Column(name = "is_recurring")
     private Boolean isRecurring;
 
-    // 1=Monday to 7=Sunday (java.time.DayOfWeek matches this logic)
-    @Column(name = "day_of_week")
-    private Integer dayOfWeek;
-
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
-
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<BookingSchedule> schedules = new java.util.ArrayList<>();
 
     @Column(name = "recurring_start_date")
     private LocalDate recurringStartDate;

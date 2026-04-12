@@ -14,6 +14,7 @@ import org.tutorbooking.dto.response.SessionResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
 import org.tutorbooking.repository.*;
 import org.tutorbooking.service.BookingService;
+import org.tutorbooking.service.EmailService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,29 +38,30 @@ public class BookingServiceImpl implements BookingService {
     private final ParentRepository parentRepository;
     private final StudentRepository studentRepository;
     private final TutorSubjectRepository tutorSubjectRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
     public BookingResponse createBooking(Long userId, BookingCreateRequest request) {
 
         Parent parent = parentRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Parent profile not found for this user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ Phụ huynh của người dùng này"));
 
         Tutor tutor = tutorRepository.findById(request.getTutorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tutor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Gia sư"));
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new ResourceNotFoundException("Subject not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Môn học"));
 
         Student student = null;
         if (request.getStudentId() != null) {
             student = studentRepository.findById(request.getStudentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hồ sơ Học sinh"));
         }
 
         TutorSubject tutorSubject = tutorSubjectRepository
                 .findByTutorIdAndSubjectIdAndGradeLevel(request.getTutorId(), request.getSubjectId(), (int) request.getGradeLevel())
-                .orElseThrow(() -> new ResourceNotFoundException("Tutor does not teach this subject at this grade level"));
+                .orElseThrow(() -> new ResourceNotFoundException("Gia sư không dạy môn này ở cấp lớp yêu cầu"));
 
         BigDecimal price = BigDecimal.valueOf(tutorSubject.getPricePerSession());
 
@@ -72,13 +74,23 @@ public class BookingServiceImpl implements BookingService {
                 .pricePerSession(price)
                 .teachingMode(request.getTeachingMode())
                 .isRecurring(request.getIsRecurring())
-                .dayOfWeek(request.getDayOfWeek())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
                 .recurringStartDate(request.getRecurringStartDate())
                 .recurringEndDate(request.getRecurringEndDate())
                 .status(BookingStatus.ACTIVE)
+                .schedules(new ArrayList<>())
                 .build();
+
+        if (request.getSchedules() != null) {
+            for (BookingCreateRequest.ScheduleItem item : request.getSchedules()) {
+                BookingSchedule schedule = BookingSchedule.builder()
+                        .booking(booking)
+                        .dayOfWeek(item.getDayOfWeek())
+                        .startTime(item.getStartTime())
+                        .endTime(item.getEndTime())
+                        .build();
+                booking.getSchedules().add(schedule);
+            }
+        }
 
         Booking savedBooking = bookingRepository.save(booking);
 
@@ -87,37 +99,61 @@ public class BookingServiceImpl implements BookingService {
         if (Boolean.TRUE.equals(request.getIsRecurring())) {
             LocalDate start = request.getRecurringStartDate();
             LocalDate end = request.getRecurringEndDate();
-            if (start == null || end == null || request.getDayOfWeek() == null) {
-                throw new IllegalArgumentException("recurringStartDate, recurringEndDate, dayOfWeek are required for recurring booking");
+            if (start == null || end == null) {
+                throw new IllegalArgumentException("Hợp đồng định kỳ yêu cầu phải có Ngày bắt đầu và Ngày kết thúc");
             }
 
-            LocalDate date = start;
-            while (!date.isAfter(end)) {
-                if (date.getDayOfWeek().getValue() == request.getDayOfWeek()) {
-                    Session session = Session.builder()
-                            .booking(savedBooking)
-                            .sessionDate(date)
-                            .startTime(request.getStartTime())
-                            .endTime(request.getEndTime())
-                            .status(SessionStatus.PENDING)
-                            .build();
-                    generatedSessions.add(session);
+            for (BookingSchedule sched : savedBooking.getSchedules()) {
+                List<LocalDate> datesForThisSched = new ArrayList<>();
+                LocalDate date = start;
+                while (!date.isAfter(end)) {
+                    if (date.getDayOfWeek().getValue() == sched.getDayOfWeek()) {
+                        datesForThisSched.add(date);
+                        Session session = Session.builder()
+                                .booking(savedBooking)
+                                .sessionDate(date)
+                                .startTime(sched.getStartTime())
+                                .endTime(sched.getEndTime())
+                                .status(SessionStatus.PENDING)
+                                .build();
+                        generatedSessions.add(session);
+                    }
+                    date = date.plusDays(1);
                 }
-                date = date.plusDays(1);
+                if (!datesForThisSched.isEmpty()) {
+                    boolean hasOverlap = sessionRepository.existsOverlappingSessions(
+                            request.getTutorId(), datesForThisSched, sched.getStartTime(), sched.getEndTime());
+                    if (hasOverlap) {
+                        throw new IllegalStateException("Gia sư đã có lịch vào Thứ " + (sched.getDayOfWeek() == 7 ? "Chủ Nhật" : (sched.getDayOfWeek() + 1)) + " (" + sched.getStartTime() + " - " + sched.getEndTime() + "). Vui lòng chọn ca hoặc gia sư khác");
+                    }
+                }
             }
         } else {
             LocalDate singleDate = request.getRecurringStartDate();
             if (singleDate == null) {
-                throw new IllegalArgumentException("recurringStartDate is required for one-time booking");
+                throw new IllegalArgumentException("Hợp đồng một buổi yêu cầu phải có Ngày bắt đầu (recurringStartDate)");
             }
-            Session session = Session.builder()
-                    .booking(savedBooking)
-                    .sessionDate(singleDate)
-                    .startTime(request.getStartTime())
-                    .endTime(request.getEndTime())
-                    .status(SessionStatus.PENDING)
-                    .build();
-            generatedSessions.add(session);
+
+            for (BookingSchedule sched : savedBooking.getSchedules()) {
+                if (singleDate.getDayOfWeek().getValue() != sched.getDayOfWeek()) {
+                    throw new IllegalArgumentException("Ngày bắt đầu không khớp với Thứ đã chọn trong lịch trình");
+                }
+
+                boolean hasOverlap = sessionRepository.existsOverlappingSessions(
+                        request.getTutorId(), List.of(singleDate), sched.getStartTime(), sched.getEndTime());
+                if (hasOverlap) {
+                    throw new IllegalStateException("Gia sư đã có lịch vào lúc " + sched.getStartTime() + " - " + sched.getEndTime() + " ngày " + singleDate + ". Vui lòng chọn ca khác");
+                }
+
+                Session session = Session.builder()
+                        .booking(savedBooking)
+                        .sessionDate(singleDate)
+                        .startTime(sched.getStartTime())
+                        .endTime(sched.getEndTime())
+                        .status(SessionStatus.PENDING)
+                        .build();
+                generatedSessions.add(session);
+            }
         }
 
         List<Session> savedSessions = sessionRepository.saveAll(generatedSessions);
@@ -164,7 +200,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponse getBookingById(Long userId, String role, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hợp đồng này"));
 
         if (!"ADMIN".equalsIgnoreCase(role)) {
             boolean isOwner = false;
@@ -174,7 +210,7 @@ public class BookingServiceImpl implements BookingService {
                 isOwner = booking.getTutor().getUser().getId().equals(userId);
             }
             if (!isOwner) {
-                throw new org.springframework.security.access.AccessDeniedException("You don't have permission to view this booking");
+                throw new AccessDeniedException("Bạn không có quyền xem Hợp đồng này");
             }
         }
 
@@ -196,14 +232,14 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse pauseBooking(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hợp đồng này"));
 
         if (!booking.getParent().getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("You don't have permission to pause this booking");
+            throw new AccessDeniedException("Bạn không có quyền Tạm dừng Hợp đồng này");
         }
 
         if (booking.getStatus() != BookingStatus.ACTIVE) {
-            throw new IllegalStateException("Only ACTIVE bookings can be paused. Current status: " + booking.getStatus());
+            throw new IllegalStateException("Chỉ có thể Tạm dừng Hợp đồng đang Hoạt động (ACTIVE). Trạng thái hiện tại: " + booking.getStatus());
         }
 
         booking.setStatus(BookingStatus.PAUSED);
@@ -215,6 +251,12 @@ public class BookingServiceImpl implements BookingService {
         }
         sessionRepository.saveAll(pendingSessions);
 
+        emailService.sendBookingStatusChangedEmail(
+                booking.getTutor().getUser().getEmail(),
+                booking.getTutor().getUser().getFullName(),
+                booking.getSubject().getName(),
+                "PAUSED");
+
         return toBookingResponse(booking, null);
     }
 
@@ -222,14 +264,14 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse resumeBooking(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hợp đồng này"));
 
         if (!booking.getParent().getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("You don't have permission to resume this booking");
+            throw new AccessDeniedException("Bạn không có quyền Tiếp tục Khóa học này");
         }
 
         if (booking.getStatus() != BookingStatus.PAUSED) {
-            throw new IllegalStateException("Only PAUSED bookings can be resumed. Current status: " + booking.getStatus());
+            throw new IllegalStateException("Chỉ có thể Tiếp tục khóa học đang Bị Tạm Dừng (PAUSED). Trạng thái hiện tại: " + booking.getStatus());
         }
 
         booking.setStatus(BookingStatus.ACTIVE);
@@ -241,22 +283,30 @@ public class BookingServiceImpl implements BookingService {
             LocalDate startFrom = today.isAfter(booking.getRecurringStartDate()) ? today : booking.getRecurringStartDate();
             LocalDate end = booking.getRecurringEndDate();
 
-            LocalDate date = startFrom;
-            while (!date.isAfter(end)) {
-                if (date.getDayOfWeek().getValue() == booking.getDayOfWeek()) {
-                    Session session = Session.builder()
-                            .booking(booking)
-                            .sessionDate(date)
-                            .startTime(booking.getStartTime())
-                            .endTime(booking.getEndTime())
-                            .status(SessionStatus.PENDING)
-                            .build();
-                    newSessions.add(session);
+            for (BookingSchedule sched : booking.getSchedules()) {
+                LocalDate date = startFrom;
+                while (!date.isAfter(end)) {
+                    if (date.getDayOfWeek().getValue() == sched.getDayOfWeek()) {
+                        Session session = Session.builder()
+                                .booking(booking)
+                                .sessionDate(date)
+                                .startTime(sched.getStartTime())
+                                .endTime(sched.getEndTime())
+                                .status(SessionStatus.PENDING)
+                                .build();
+                        newSessions.add(session);
+                    }
+                    date = date.plusDays(1);
                 }
-                date = date.plusDays(1);
             }
             sessionRepository.saveAll(newSessions);
         }
+
+        emailService.sendBookingStatusChangedEmail(
+                booking.getTutor().getUser().getEmail(),
+                booking.getTutor().getUser().getFullName(),
+                booking.getSubject().getName(),
+                "ACTIVE");
 
         return toBookingResponse(booking, null);
     }
@@ -265,16 +315,16 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse cancelBooking(Long userId, String role, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hợp đồng này"));
 
         boolean isParent = booking.getParent().getUser().getId().equals(userId);
         boolean isTutor = booking.getTutor().getUser().getId().equals(userId);
         if (!isParent && !isTutor) {
-            throw new AccessDeniedException("You don't have permission to cancel this booking");
+            throw new AccessDeniedException("Bạn không có quyền Hủy Hợp đồng này");
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new IllegalStateException("Booking is already cancelled");
+            throw new IllegalStateException("Hợp đồng này đã bị Hủy từ trước");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -293,10 +343,30 @@ public class BookingServiceImpl implements BookingService {
         sessionRepository.saveAll(pendingSessions);
         sessionRepository.saveAll(confirmedSessions);
 
+        // Bắn Email Báo Động cho Phía Bị Hủy (Nạn nhân còn lại)
+        User receiver = isParent ? booking.getTutor().getUser() : booking.getParent().getUser();
+        emailService.sendBookingStatusChangedEmail(
+                receiver.getEmail(),
+                receiver.getFullName(),
+                booking.getSubject().getName(),
+                "CANCELLED");
+
         return toBookingResponse(booking, null);
     }
 
     private BookingResponse toBookingResponse(Booking booking, List<SessionResponse> sessionResponses) {
+        List<BookingResponse.ScheduleResponseItem> scheduleResponses = new ArrayList<>();
+        if (booking.getSchedules() != null) {
+            scheduleResponses = booking.getSchedules().stream()
+                    .map(sched -> BookingResponse.ScheduleResponseItem.builder()
+                            .id(sched.getId())
+                            .dayOfWeek(sched.getDayOfWeek())
+                            .startTime(sched.getStartTime())
+                            .endTime(sched.getEndTime())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .parentId(booking.getParent().getId())
@@ -307,9 +377,7 @@ public class BookingServiceImpl implements BookingService {
                 .pricePerSession(booking.getPricePerSession())
                 .teachingMode(booking.getTeachingMode())
                 .isRecurring(booking.getIsRecurring())
-                .dayOfWeek(booking.getDayOfWeek())
-                .startTime(booking.getStartTime())
-                .endTime(booking.getEndTime())
+                .schedules(scheduleResponses)
                 .recurringStartDate(booking.getRecurringStartDate())
                 .recurringEndDate(booking.getRecurringEndDate())
                 .status(booking.getStatus())

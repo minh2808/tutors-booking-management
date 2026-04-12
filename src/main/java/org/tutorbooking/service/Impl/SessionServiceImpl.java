@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.tutorbooking.domain.entity.Booking;
 import org.tutorbooking.domain.entity.Session;
 import org.tutorbooking.domain.entity.User;
+import org.tutorbooking.domain.enums.BookingStatus;
 import org.tutorbooking.domain.enums.SessionStatus;
 import org.tutorbooking.dto.response.PageResponse;
 import org.tutorbooking.dto.response.SessionDetailResponse;
@@ -63,14 +64,14 @@ public class SessionServiceImpl implements SessionService {
     @Override
     public SessionDetailResponse getSessionById(Long userId, String role, Long sessionId) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin Buổi học."));
 
         if (!"ADMIN".equalsIgnoreCase(role)) {
             Booking booking = session.getBooking();
             boolean isParent = booking.getParent().getUser().getId().equals(userId);
             boolean isTutor = booking.getTutor().getUser().getId().equals(userId);
             if (!isParent && !isTutor) {
-                throw new AccessDeniedException("You don't have permission to view this session");
+                throw new AccessDeniedException("Bạn không có quyền xem thông tin của buổi học này.");
             }
         }
 
@@ -81,18 +82,18 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public SessionDetailResponse confirmSession(Long userId, Long sessionId) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin Buổi học."));
 
         Booking booking = session.getBooking();
 
         // Chỉ Tutor liên quan mới được confirm
         if (!booking.getTutor().getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Only the assigned tutor can confirm this session");
+            throw new AccessDeniedException("Chi gia sư được giao lớp mới có quyền xác nhận buổi học này.");
         }
 
         // Chỉ PENDING mới confirm được
         if (session.getStatus() != SessionStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING sessions can be confirmed. Current status: " + session.getStatus());
+            throw new IllegalStateException("Chỉ có thể xác nhận các buổi học đang ở Mức Chờ (PENDING). Trạng thái hiện tại: " + session.getStatus());
         }
 
         session.setStatus(SessionStatus.CONFIRMED);
@@ -117,20 +118,35 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public SessionDetailResponse completeSession(Long userId, Long sessionId) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin Buổi học."));
 
         Booking booking = session.getBooking();
 
         if (!booking.getTutor().getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Only the assigned tutor can complete this session");
+            throw new AccessDeniedException("Chỉ gia sư được giao lớp mới có quyền bấm Hoàn thành buổi học.");
         }
 
         if (session.getStatus() != SessionStatus.CONFIRMED) {
-            throw new IllegalStateException("Only CONFIRMED sessions can be completed. Current status: " + session.getStatus());
+            throw new IllegalStateException("Chỉ có thể hoàn thành các buổi học đã được xác nhận (CONFIRMED). Trạng thái hiện tại: " + session.getStatus());
         }
 
         session.setStatus(SessionStatus.COMPLETED);
         sessionRepository.save(session);
+
+        // Kiểm tra xem tất cả các buổi học của khóa này đã kết thúc chưa
+        List<Session> allSessions = sessionRepository.findByBookingId(booking.getId());
+        boolean isAllDone = allSessions.stream()
+                .allMatch(s -> s.getStatus() == SessionStatus.COMPLETED || s.getStatus() == SessionStatus.CANCELLED);
+        
+        if (isAllDone) {
+            boolean hasCompleted = allSessions.stream().anyMatch(s -> s.getStatus() == SessionStatus.COMPLETED);
+            
+            if (hasCompleted) {
+                booking.setStatus(BookingStatus.COMPLETED);
+            } else {
+                booking.setStatus(BookingStatus.CANCELLED);
+            }
+        }
 
         return toDetailResponse(session);
     }
@@ -139,7 +155,7 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public SessionDetailResponse cancelSession(Long userId, Long sessionId, String cancelReason) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin Buổi học."));
 
         Booking booking = session.getBooking();
 
@@ -147,25 +163,54 @@ public class SessionServiceImpl implements SessionService {
         boolean isParent = booking.getParent().getUser().getId().equals(userId);
         boolean isTutor = booking.getTutor().getUser().getId().equals(userId);
         if (!isParent && !isTutor) {
-            throw new AccessDeniedException("You don't have permission to cancel this session");
+            throw new AccessDeniedException("Bạn không có quyền Hủy buổi học của người khác.");
         }
 
         // Không hủy session đã COMPLETED hoặc đã CANCELLED
         if (session.getStatus() == SessionStatus.COMPLETED) {
-            throw new IllegalStateException("Cannot cancel a completed session");
+            throw new IllegalStateException("Không thể hủy buổi học đã diễn ra và Hoàn thành.");
         }
         if (session.getStatus() == SessionStatus.CANCELLED) {
-            throw new IllegalStateException("Session is already cancelled");
+            throw new IllegalStateException("Buổi học này đã bị Hủy từ trước rồi.");
         }
 
         // Ghi nhận ai hủy + lý do
         User cancelledByUser = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng thao tác."));
 
         session.setStatus(SessionStatus.CANCELLED);
         session.setCancelledBy(cancelledByUser);
         session.setCancelReason(cancelReason);
         sessionRepository.save(session);
+
+        // Gửi email báo Hủy cho bên còn lại
+        User receiverUser = isParent ? booking.getTutor().getUser() : booking.getParent().getUser();
+        String cancellerRoleName = isParent ? "Phụ huynh" : "Gia sư";
+        
+        emailService.sendSessionCancelledEmail(
+                receiverUser.getEmail(),
+                receiverUser.getFullName(),
+                cancellerRoleName,
+                booking.getSubject().getName(),
+                session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                session.getStartTime().toString(),
+                session.getEndTime().toString(),
+                cancelReason
+        );
+
+        // Kiểm tra xem tất cả các buổi học của khóa này đã kết thúc hoặc hủy hết chưa
+        List<Session> allSessions = sessionRepository.findByBookingId(booking.getId());
+        boolean isAllDone = allSessions.stream()
+                .allMatch(s -> s.getStatus() == SessionStatus.COMPLETED || s.getStatus() == SessionStatus.CANCELLED);
+        
+        if (isAllDone) {
+            boolean hasCompleted = allSessions.stream().anyMatch(s -> s.getStatus() == SessionStatus.COMPLETED);
+            if (hasCompleted) {
+                booking.setStatus(BookingStatus.COMPLETED);
+            } else {
+                booking.setStatus(BookingStatus.CANCELLED);
+            }
+        }
 
         return toDetailResponse(session);
     }

@@ -8,6 +8,7 @@ import org.tutorbooking.domain.entity.Student;
 import org.tutorbooking.dto.request.StudentRequest;
 import org.tutorbooking.dto.response.StudentResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
+import org.tutorbooking.repository.BookingRepository;
 import org.tutorbooking.repository.ParentRepository;
 import org.tutorbooking.repository.StudentRepository;
 import org.tutorbooking.service.StudentService;
@@ -21,6 +22,7 @@ public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
     private final ParentRepository parentRepository;
+    private final BookingRepository bookingRepository;
 
     private Parent getParentEntityByUser(Long userId) {
         return parentRepository.findByUserId(userId)
@@ -76,6 +78,10 @@ public class StudentServiceImpl implements StudentService {
         
         Student student = studentRepository.findByIdAndParentId(studentId, parent.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin học sinh cần xóa."));
+                
+        if (bookingRepository.existsByStudentId(studentId)) {
+            throw new RuntimeException("Không thể xóa học sinh này vì đang có lịch học (Booking) trên hệ thống.");
+        }
                 
         studentRepository.delete(student);
     }

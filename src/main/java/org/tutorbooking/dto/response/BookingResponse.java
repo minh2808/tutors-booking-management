@@ -22,9 +22,17 @@ public class BookingResponse {
     private BigDecimal pricePerSession;
     private TeachingMode teachingMode;
     private Boolean isRecurring;
-    private Integer dayOfWeek;
-    private LocalTime startTime;
-    private LocalTime endTime;
+    private java.util.List<ScheduleResponseItem> schedules;
+
+    @Data
+    @Builder
+    public static class ScheduleResponseItem {
+        private Long id;
+        private Integer dayOfWeek;
+        private LocalTime startTime;
+        private LocalTime endTime;
+    }
+
     private LocalDate recurringStartDate;
     private LocalDate recurringEndDate;
     private BookingStatus status;
