@@ -82,4 +82,13 @@ public class BookingController {
         BookingResponse response = bookingService.cancelBooking(userPrincipal.getId(), userPrincipal.getRole(), id);
         return ResponseEntity.ok(ApiResponse.success("Booking cancelled successfully", response));
     }
+
+    @PreAuthorize("hasRole('TUTOR')")
+    @PutMapping("/{id}/accept")
+    public ResponseEntity<ApiResponse<BookingResponse>> acceptBooking(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long id) {
+        BookingResponse response = bookingService.acceptBookingByTutor(userPrincipal.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Gia sư đã xác nhận Nhận lớp. Vui lòng thanh toán phí để kích hoạt", response));
+    }
 }
