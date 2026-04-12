@@ -21,7 +21,6 @@ public class StudentController {
 
     private final StudentService studentService;
 
-    // Xem danh sách con cái
     @PreAuthorize("hasRole('PARENT')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<StudentResponse>>> getMyStudents(Authentication authentication) {
@@ -30,7 +29,6 @@ public class StudentController {
                                 studentService.getStudentsByParent(principal.getId())));
     }
 
-    // Thêm hồ sơ con cái
     @PreAuthorize("hasRole('PARENT')")
     @PostMapping
     public ResponseEntity<ApiResponse<StudentResponse>> addStudent(
@@ -41,7 +39,6 @@ public class StudentController {
                                 studentService.addStudent(principal.getId(), request)));
     }
 
-    // Cập nhật thông tin con
     @PreAuthorize("hasRole('PARENT')")
     @PutMapping("/{studentId}")
     public ResponseEntity<ApiResponse<StudentResponse>> updateStudent(
@@ -53,7 +50,6 @@ public class StudentController {
                                 studentService.updateStudent(principal.getId(), studentId, request)));
     }
 
-    // Xóa hồ sơ con
     @PreAuthorize("hasRole('PARENT')")
     @DeleteMapping("/{studentId}")
     public ResponseEntity<ApiResponse<Void>> deleteStudent(

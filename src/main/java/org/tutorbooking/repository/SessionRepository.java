@@ -40,4 +40,15 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
             @Param("endDate") LocalDate endDate,
             @Param("status") SessionStatus status,
             Pageable pageable);
+
+    // Kiểm tra chống trùng lịch (Chỉ xét các buổi học thật sự được lên lịch: PENDING, CONFIRMED)
+    @Query("SELECT COUNT(s) > 0 FROM Session s WHERE s.booking.tutor.user.id = :tutorUserId " +
+           "AND s.sessionDate IN :dates " +
+           "AND s.status IN (org.tutorbooking.domain.enums.SessionStatus.PENDING, org.tutorbooking.domain.enums.SessionStatus.CONFIRMED) " +
+           "AND (s.startTime < :endTime AND s.endTime > :startTime)")
+    boolean existsOverlappingSessions(
+            @Param("tutorUserId") Long tutorUserId,
+            @Param("dates") List<LocalDate> dates,
+            @Param("startTime") java.time.LocalTime startTime,
+            @Param("endTime") java.time.LocalTime endTime);
 }

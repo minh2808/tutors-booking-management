@@ -79,7 +79,6 @@ public class BookingController {
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long id) {
-
         BookingResponse response = bookingService.cancelBooking(userPrincipal.getId(), userPrincipal.getRole(), id);
         return ResponseEntity.ok(ApiResponse.success("Booking cancelled successfully", response));
     }
