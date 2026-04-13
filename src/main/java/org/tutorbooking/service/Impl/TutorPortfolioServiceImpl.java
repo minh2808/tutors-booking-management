@@ -41,7 +41,7 @@ public class TutorPortfolioServiceImpl implements TutorPortfolioService {
 
     private Tutor getApprovedTutorById(Long tutorId) {
         Tutor tutor = getTutorById(tutorId);
-        if (!"approved".equals(tutor.getApprovalStatus())) {
+        if (!"approved".equalsIgnoreCase(tutor.getApprovalStatus())) {
             throw new RuntimeException("Hồ sơ gia sư này chưa được phê duyệt công khai");
         }
         return tutor;

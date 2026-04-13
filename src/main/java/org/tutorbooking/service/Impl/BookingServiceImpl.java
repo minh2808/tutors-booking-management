@@ -141,16 +141,7 @@ public class BookingServiceImpl implements BookingService {
                 .build();
         paymentRepository.save(parentPayment);
 
-        // 3. Tạo hóa đơn 10k cho Gia sư (Phí Nhận Lớp)
-        Payment tutorPayment = Payment.builder()
-                .user(booking.getTutor().getUser())
-                .booking(booking)
-                .amount(new BigDecimal("10000")) // FIXED 10k Nhu Sếp Yêu Cầu
-                .paymentType(PaymentType.CLASS_RECEIVING_FEE)
-                .paymentMethod(PaymentMethod.BANK_TRANSFER)
-                .status(PaymentStatus.PENDING)
-                .build();
-        paymentRepository.save(tutorPayment);
+        // Đã LƯỢC BỎ: Không tạo Hóa đơn cho Gia sư nữa để giảm phức tạp (Chỉ Phụ Huynh thanh toán)
 
         // Bắn Email báo nộp tiền cho Phụ Huynh
         emailService.sendBookingStatusChangedEmail(
