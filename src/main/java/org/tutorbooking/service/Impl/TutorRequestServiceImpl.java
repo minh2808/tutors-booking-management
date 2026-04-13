@@ -303,7 +303,6 @@ public class TutorRequestServiceImpl implements TutorRequestService {
         return mapToTutorApplicationResponse(application);
     }
 
-    // ========== HELPER METHODS ==========
 
     private TutorRequestResponse mapToTutorRequestResponse(TutorRequest tutorRequest, long applicantsCount) {
         TutorRequestResponse response = TutorRequestResponse.builder()

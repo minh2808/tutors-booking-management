@@ -11,6 +11,12 @@ import org.tutorbooking.repository.UserRepository;
 import org.tutorbooking.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.tutorbooking.domain.enums.AuthProvider;
+import org.tutorbooking.domain.enums.Role;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.tutorbooking.dto.response.UserAdminResponse;
 import org.springframework.web.multipart.MultipartFile;
 import org.tutorbooking.service.CloudinaryService;
 import java.io.IOException;
@@ -117,6 +123,31 @@ public class UserServiceImpl implements UserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setRefreshToken(null);
+        userRepository.save(user);
+    }
+
+    @Override
+    public Page<UserAdminResponse> getAllUsersForAdmin(Role role, Boolean isActive, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<User> users = userRepository.findUsersByFilters(role, isActive, keyword, pageable);
+        return users.map(user -> UserAdminResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .authProvider(user.getAuthProvider())
+                .createdAt(user.getCreatedAt())
+                .build());
+    }
+
+    @Override
+    @Transactional
+    public void disableUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với id: " + id));
+        user.setIsActive(false);
         userRepository.save(user);
     }
 }

@@ -62,4 +62,17 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
                 WHERE t.approvalStatus = 'pending'
             """)
     Page<Tutor> findPendingTutors(Pageable pageable);
+
+    @Query("""
+            SELECT new org.tutorbooking.dto.response.TopTutorResponse(
+                t.id, u.fullName, u.avatarUrl, u.email, AVG(r.rating), COUNT(r.id)
+            )
+            FROM Tutor t
+            JOIN t.user u
+            JOIN Review r ON r.tutor.id = t.id
+            WHERE t.approvalStatus = 'approved'
+            GROUP BY t.id, u.fullName, u.avatarUrl, u.email
+            ORDER BY AVG(r.rating) DESC
+            """)
+    Page<org.tutorbooking.dto.response.TopTutorResponse> findTopTutors(Pageable pageable);
 }

@@ -19,4 +19,6 @@ public interface TutorService {
     Page<TutorDetailResponse> getPendingTutors(int page, int size);
     void approveTutor(Long tutorId);
     void rejectTutor(Long tutorId, String reason);
+
+    Page<org.tutorbooking.dto.response.TopTutorResponse> getTopTutors(int page, int size);
 }

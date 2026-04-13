@@ -1,5 +1,6 @@
 package org.tutorbooking.service.Impl;
 
+import org.tutorbooking.dto.response.TopTutorResponse;
 import org.tutorbooking.exception.ResourceNotFoundException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -184,5 +185,11 @@ public class TutorServiceImpl implements TutorService {
         
         tutor.setApprovalStatus("rejected");
         tutor.setRejectionReason(reason);
+    }
+
+    @Override
+    public Page<TopTutorResponse> getTopTutors(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        return tutorRepository.findTopTutors(pageable);
     }
 }
