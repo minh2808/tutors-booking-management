@@ -30,6 +30,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     private final ParentRepository parentRepository;
     private final TutorRepository tutorRepository;
     private final SubjectRepository subjectRepository;
+    private final StudentRepository studentRepository;
     private final EmailService emailService;
 
     @Override
@@ -40,9 +41,17 @@ public class TutorRequestServiceImpl implements TutorRequestService {
         Subject subject = subjectRepository.findById(req.getSubjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subject không tồn tại"));
 
+        Student student = studentRepository.findById(req.getStudentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Student không tồn tại"));
+
+        if (!student.getParent().getId().equals(parentId)) {
+            throw new RuntimeException("Học sinh này không thuộc quyền quản lý của bạn");
+        }
+
         TutorRequest tutorRequest = TutorRequest.builder()
                 .parent(parent)
                 .subject(subject)
+                .student(student)
                 .gradeLevel(req.getGradeLevel())
                 .desiredPrice(req.getDesiredPrice())
                 .teachingMode(req.getTeachingMode())
@@ -297,7 +306,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     // ========== HELPER METHODS ==========
 
     private TutorRequestResponse mapToTutorRequestResponse(TutorRequest tutorRequest, long applicantsCount) {
-        return TutorRequestResponse.builder()
+        TutorRequestResponse response = TutorRequestResponse.builder()
                 .id(tutorRequest.getId())
                 .parentId(tutorRequest.getParent().getId())
                 .parentName(tutorRequest.getParent().getUser().getFullName())
@@ -305,6 +314,8 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .parentEmail(tutorRequest.getParent().getUser().getEmail())
                 .subjectId(tutorRequest.getSubject().getId())
                 .subjectName(tutorRequest.getSubject().getName())
+                .studentId(tutorRequest.getStudent() != null ? tutorRequest.getStudent().getId() : null)
+                .studentName(tutorRequest.getStudent() != null ? tutorRequest.getStudent().getFullName() : null)
                 .gradeLevel(tutorRequest.getGradeLevel())
                 .desiredPrice(tutorRequest.getDesiredPrice())
                 .teachingMode(tutorRequest.getTeachingMode())
@@ -317,6 +328,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .updatedAt(tutorRequest.getUpdatedAt())
                 .applicantsCount(applicantsCount)
                 .build();
+        return response;
     }
 
     private TutorApplicationResponse mapToTutorApplicationResponse(TutorApplication application) {

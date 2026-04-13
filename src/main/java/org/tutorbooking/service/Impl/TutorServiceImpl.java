@@ -41,7 +41,6 @@ public class TutorServiceImpl implements TutorService {
         Tutor tutor = tutorRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư."));
         
-        // Không kiểm tra trạng thái approval để gia sư luôn có thể xem hồ sơ của mình
         return mapToTutorDetailResponse(tutor);
     }
 

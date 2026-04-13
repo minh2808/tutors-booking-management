@@ -16,6 +16,9 @@ public class TutorRequestCreateRequest {
     @NotNull(message = "Subject ID không được null")
     private Long subjectId;
 
+    @NotNull(message = "Student ID không được null")
+    private Long studentId;
+
     @NotNull(message = "Grade level không được null")
     @Min(value = 1, message = "Grade phải >= 1")
     @Max(value = 12, message = "Grade phải <= 12")

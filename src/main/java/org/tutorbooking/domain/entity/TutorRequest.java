@@ -30,6 +30,10 @@ public class TutorRequest {
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id")
+    private Student student;
+
     @Column(name = "grade_level", nullable = false)
     private Byte gradeLevel;
 
