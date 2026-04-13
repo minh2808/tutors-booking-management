@@ -69,6 +69,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tutors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tutors/*/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tutors/*").permitAll() 
+                        .requestMatchers(HttpMethod.GET, "/api/tutors/*/subjects").permitAll() 
+                        .requestMatchers(HttpMethod.GET, "/api/tutors/*/availability").permitAll() 
                         .requestMatchers(HttpMethod.GET, "/api/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/payos-webhook").permitAll()
                         // Tất cả API còn lại: phải đăng nhập, phân quyền chi tiết ở @PreAuthorize trên method
