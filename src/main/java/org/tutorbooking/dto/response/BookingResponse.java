@@ -22,7 +22,7 @@ public class BookingResponse {
     private BigDecimal pricePerSession;
     private TeachingMode teachingMode;
     private Boolean isRecurring;
-    private java.util.List<ScheduleResponseItem> schedules;
+    private List<ScheduleResponseItem> schedules;
 
     @Data
     @Builder

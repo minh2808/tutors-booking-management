@@ -95,20 +95,7 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.setTransactionId(data.getTransactionDateTime());
                 paymentRepository.save(payment);
 
-                // KẾT HỢP DOUBLE-HANDSHAKE
-                // Nếu Thanh Toán này thuộc về 1 Booking, ta Cần kiểm tra xem thằng còn lại đóng chưa?
-                if (payment.getBooking() != null) {
-                    Long bookingId = payment.getBooking().getId();
-                    List<Payment> bookingPayments = paymentRepository.findByBookingId(bookingId);
-                    
-                    boolean allPaid = bookingPayments.stream()
-                            .allMatch(p -> p.getStatus() == PaymentStatus.COMPLETED);
 
-                    if (allPaid) {
-                        // Kích hoạt Booking
-                        bookingService.activateBooking(bookingId);
-                    }
-                }
             }
         }
     }

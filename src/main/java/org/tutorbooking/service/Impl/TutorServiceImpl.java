@@ -30,7 +30,7 @@ public class TutorServiceImpl implements TutorService {
         Tutor tutor = tutorRepository.findDetailById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ gia sư: " + tutorId));
 
-        if (!"approved".equals(tutor.getApprovalStatus())) {
+        if (!"approved".equalsIgnoreCase(tutor.getApprovalStatus())) {
             throw new ResourceNotFoundException("Hồ sơ gia sư này chưa được phê duyệt công khai.");
         }
         return mapToTutorDetailResponse(tutor);
@@ -165,7 +165,7 @@ public class TutorServiceImpl implements TutorService {
         Tutor tutor = tutorRepository.findById(tutorId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư"));
         
-        if (!"pending".equals(tutor.getApprovalStatus())) {
+        if (!"pending".equalsIgnoreCase(tutor.getApprovalStatus())) {
             throw new RuntimeException("Hồ sơ này không ở trạng thái chờ duyệt!");
         }
         
@@ -179,7 +179,7 @@ public class TutorServiceImpl implements TutorService {
         Tutor tutor = tutorRepository.findById(tutorId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ gia sư"));
         
-        if (!"pending".equals(tutor.getApprovalStatus())) {
+        if (!"pending".equalsIgnoreCase(tutor.getApprovalStatus())) {
             throw new RuntimeException("Hồ sơ này không ở trạng thái chờ duyệt!");
         }
         

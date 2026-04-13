@@ -146,7 +146,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
         Tutor tutor = tutorRepository.findById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
 
-        if (!"approved".equals(tutor.getApprovalStatus())) {
+        if (!"approved".equalsIgnoreCase(tutor.getApprovalStatus())) {
              throw new RuntimeException("Tài khoản gia sư chưa được phê duyệt, không thể ứng tuyển");
         }
 
