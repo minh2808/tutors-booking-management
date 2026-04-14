@@ -445,6 +445,14 @@ public class BookingServiceImpl implements BookingService {
                     .collect(Collectors.toList());
         }
 
+        Long paymentId = null;
+        if (booking.getStatus() == BookingStatus.PENDING_PAYMENTS || booking.getStatus() == BookingStatus.ACTIVE) {
+            List<Payment> payments = paymentRepository.findByBookingId(booking.getId());
+            if (payments != null && !payments.isEmpty()) {
+                paymentId = payments.get(0).getId();
+            }
+        }
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .parentId(booking.getParent().getId())
@@ -463,6 +471,7 @@ public class BookingServiceImpl implements BookingService {
                 .recurringEndDate(booking.getRecurringEndDate())
                 .status(booking.getStatus())
                 .sessions(sessionResponses)
+                .paymentId(paymentId)
                 .build();
     }
 }

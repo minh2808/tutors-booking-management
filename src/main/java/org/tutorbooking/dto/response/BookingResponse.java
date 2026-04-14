@@ -40,4 +40,5 @@ public class BookingResponse {
     private LocalDate recurringEndDate;
     private BookingStatus status;
     private List<SessionResponse> sessions;
+    private Long paymentId;
 }
