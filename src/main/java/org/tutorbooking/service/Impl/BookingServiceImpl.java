@@ -112,7 +112,7 @@ public class BookingServiceImpl implements BookingService {
         return toBookingResponse(savedBooking, new ArrayList<>());
     }
     
-    // GIA SƯ BẤM ĐỒNG Ý -> TẠO HÓA ĐƠN KÉP
+    // GIA SƯ BẤM ĐỒNG Ý
     @Transactional
     public BookingResponse acceptBookingByTutor(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -126,6 +126,7 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Hợp đồng này không ở trạng thái chờ xác nhận");
         }
 
+        /* TẠM TẮT LUỒNG THANH TOÁN DO KHÔNG KHẢ THI
         // 1. Chuyển sang chờ thanh toán
         booking.setStatus(BookingStatus.PENDING_PAYMENTS);
         bookingRepository.save(booking);
@@ -140,18 +141,34 @@ public class BookingServiceImpl implements BookingService {
                 .status(PaymentStatus.PENDING)
                 .build();
         paymentRepository.save(parentPayment);
+        */
 
-        // Đã LƯỢC BỎ: Không tạo Hóa đơn cho Gia sư nữa để giảm phức tạp (Chỉ Phụ Huynh thanh toán)
+        // CHUYỂN THẲNG SANG ACTIVE VÀ TẠO SESSION LUÔN
+        booking.setStatus(BookingStatus.ACTIVE);
+        bookingRepository.save(booking);
 
-        // Bắn Email báo nộp tiền cho Phụ Huynh
+        List<Session> newSessions = generateSessionsForBooking(booking);
+        sessionRepository.saveAll(newSessions);
+
+        List<SessionResponse> sessionResponses = newSessions.stream().map(s -> SessionResponse.builder()
+                .id(s.getId())
+                .bookingId(s.getBooking().getId())
+                .sessionDate(s.getSessionDate())
+                .startTime(s.getStartTime())
+                .endTime(s.getEndTime())
+                .status(s.getStatus())
+                .build())
+        .collect(Collectors.toList());
+
+        // Bắn Email báo ACTIVE cho Phụ Huynh (đã lược bỏ báo nộp tiền)
         emailService.sendBookingStatusChangedEmail(
                 booking.getParent().getUser().getEmail(),
                 booking.getParent().getUser().getFullName(),
                 booking.getSubject().getName(),
-                "PENDING_PAYMENTS"
+                "ACTIVE"
         );
 
-        return toBookingResponse(booking, new ArrayList<>());
+        return toBookingResponse(booking, sessionResponses);
     }
 
     // WEBHOOK SẼ GỌI HÀM NÀY KHI ĐỦ 2 HÓA ĐƠN COMPLETED
