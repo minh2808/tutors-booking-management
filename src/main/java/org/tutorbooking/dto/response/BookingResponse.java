@@ -16,8 +16,10 @@ public class BookingResponse {
     private Long id;
     private Long parentId;
     private String parentName;
+    private String parentAvatar;
     private Long tutorId;
     private String tutorName;
+    private String tutorAvatar;
     private Long subjectId;
     private Long studentId;
     private String studentName;
