@@ -15,9 +15,12 @@ import java.util.List;
 public class BookingResponse {
     private Long id;
     private Long parentId;
+    private String parentName;
     private Long tutorId;
+    private String tutorName;
     private Long subjectId;
     private Long studentId;
+    private String studentName;
     private Byte gradeLevel;
     private BigDecimal pricePerSession;
     private TeachingMode teachingMode;
