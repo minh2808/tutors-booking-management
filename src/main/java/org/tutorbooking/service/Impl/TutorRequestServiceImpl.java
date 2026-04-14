@@ -366,6 +366,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .tutorPhone(tutorUser.getPhone())
                 .tutorEducationLevel(application.getTutor().getEducationLevel())
                 .tutorExperience(application.getTutor().getExperience())
+                .tutorAvatar(tutorUser.getAvatarUrl())
                 .proposedPrice(application.getProposedPrice())
                 .coverLetter(application.getCoverLetter())
                 .status(application.getStatus())

@@ -27,6 +27,7 @@ public class TutorApplicationResponse {
     private String tutorPhone;
     private String tutorEducationLevel;
     private String tutorExperience;
+    private String tutorAvatar;
 
     // Thông tin ứng tuyển
     private BigDecimal proposedPrice;
