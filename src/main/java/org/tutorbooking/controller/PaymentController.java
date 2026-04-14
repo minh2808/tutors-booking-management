@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.PaymentLinkResponse;
 import org.tutorbooking.security.UserPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,10 +24,11 @@ public class PaymentController {
     @Operation(summary = "Lấy link thanh toán PayOS (QR Code)")
     @GetMapping("/{id}/checkout")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<PaymentLinkResponse> getCheckoutLink(
+    public ResponseEntity<ApiResponse<PaymentLinkResponse>> getCheckoutLink(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long id) throws Exception {
-        return ResponseEntity.ok(paymentService.createPaymentLink(userPrincipal.getId(), id));
+        PaymentLinkResponse response = paymentService.createPaymentLink(userPrincipal.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Tạo link thanh toán thành công", response));
     }
 
     @Operation(summary = "Webhook đón lõng tín hiệu từ PayOS (Không cần Token)")

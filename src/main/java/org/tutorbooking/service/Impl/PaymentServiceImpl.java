@@ -15,10 +15,11 @@ import org.tutorbooking.repository.PaymentRepository;
 import org.tutorbooking.service.BookingService;
 import org.tutorbooking.service.PaymentService;
 import vn.payos.PayOS;
-import vn.payos.type.CheckoutResponseData;
-import vn.payos.type.ItemData;
-import vn.payos.type.PaymentData;
-import vn.payos.type.WebhookData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
+import vn.payos.model.webhooks.WebhookData;
+import vn.payos.model.webhooks.Webhook;
 
 import java.util.List;
 
@@ -47,29 +48,29 @@ public class PaymentServiceImpl implements PaymentService {
 
         String itemName = payment.getPaymentType().name().contains("FINDING") ? "Phí Môi Giới Phụ Huynh" : "Phí Nhận Lớp Gia Sư";
 
-        ItemData item = ItemData.builder()
+        PaymentLinkItem item = PaymentLinkItem.builder()
                 .name(itemName)
                 .quantity(1)
-                .price(payment.getAmount().intValue())
+                .price(payment.getAmount().longValue())
                 .build();
 
         // returnUrl va cancelUrl (dành cho frontend xử lý redirect)
-        String returnUrl = "http://localhost:3000/payment/success";
-        String cancelUrl = "http://localhost:3000/payment/cancel";
+        String returnUrl = "https://tutors-booking-management-fe.vercel.app/payment/success";
+        String cancelUrl = "https://tutors-booking-management-fe.vercel.app/payment/cancel";
 
         // Generate OrderCode: Sử dụng ID của Payment để PayOS dễ bề cập nhật lại
         long orderCode = payment.getId();
 
-        PaymentData paymentData = PaymentData.builder()
+        CreatePaymentLinkRequest paymentData = CreatePaymentLinkRequest.builder()
                 .orderCode(orderCode)
-                .amount(payment.getAmount().intValue())
+                .amount(payment.getAmount().longValue())
                 .description("Thanh toan HD " + payment.getId())
                 .returnUrl(returnUrl)
                 .cancelUrl(cancelUrl)
                 .item(item)
                 .build();
 
-        CheckoutResponseData data = payOS.createPaymentLink(paymentData);
+        CreatePaymentLinkResponse data = payOS.paymentRequests().create(paymentData);
 
         return PaymentLinkResponse.builder()
                 .paymentId(payment.getId())
@@ -83,8 +84,8 @@ public class PaymentServiceImpl implements PaymentService {
     public void handlePayOSWebhook(JsonNode webhookBody) throws Exception {
         // Parse the webhook using PayOS SDK (The SDK validates checkSum implicitly if using generic Object Node)
         // Here we do a simplified custom parse based on expected WebhookData
-        vn.payos.type.Webhook webhook = objectMapper.treeToValue(webhookBody, vn.payos.type.Webhook.class);
-        WebhookData data = payOS.verifyPaymentWebhookData(webhook);
+        Webhook webhook = objectMapper.treeToValue(webhookBody, Webhook.class);
+        WebhookData data = payOS.webhooks().verify(webhook);
 
         if ("00".equals(data.getCode()) || "PAID".equalsIgnoreCase(data.getCode())) {
             Long paymentId = data.getOrderCode();
