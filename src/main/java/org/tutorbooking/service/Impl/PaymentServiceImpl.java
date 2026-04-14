@@ -46,6 +46,16 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalStateException("Hóa đơn này đã được thanh toán rồi");
         }
 
+        // Nếu Hóa đơn đã từng tạo Link thanh toán rồi, thì móc trong DB ra dùng luôn để tránh lỗi 
+        // "Đơn thanh toán đã tồn tại" từ PayOS.
+        if (payment.getCheckoutUrl() != null && !payment.getCheckoutUrl().isEmpty()) {
+            return PaymentLinkResponse.builder()
+                    .paymentId(payment.getId())
+                    .checkoutUrl(payment.getCheckoutUrl())
+                    .qrCode(payment.getQrCode())
+                    .build();
+        }
+
         String itemName = payment.getPaymentType().name().contains("FINDING") ? "Phí Môi Giới Phụ Huynh" : "Phí Nhận Lớp Gia Sư";
 
         PaymentLinkItem item = PaymentLinkItem.builder()
@@ -71,6 +81,11 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         CreatePaymentLinkResponse data = payOS.paymentRequests().create(paymentData);
+
+        // Lưu thông tin URL trả về vào DB để cache lại cho các lần fetch sau
+        payment.setCheckoutUrl(data.getCheckoutUrl());
+        payment.setQrCode(data.getQrCode());
+        paymentRepository.save(payment);
 
         return PaymentLinkResponse.builder()
                 .paymentId(payment.getId())
