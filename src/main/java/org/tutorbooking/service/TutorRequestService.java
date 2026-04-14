@@ -12,29 +12,29 @@ import java.util.List;
 
 public interface TutorRequestService {
 
-    TutorRequest createRequest(Long parentId, TutorRequestCreateRequest req);
+    TutorRequest createRequest(Long userId, TutorRequestCreateRequest req);
 
     TutorRequestResponse getRequestDetail(Long requestId);
 
-    List<TutorRequestResponse> getMyRequests(Long parentId);
+    List<TutorRequestResponse> getMyRequests(Long userId);
 
-    void updateRequest(Long requestId, Long parentId, TutorRequestUpdateRequest req);
+    void updateRequest(Long requestId, Long userId, TutorRequestUpdateRequest req);
 
-    void cancelRequest(Long requestId, Long parentId);
+    void cancelRequest(Long requestId, Long userId);
 
     List<TutorRequestResponse> getAllRequests();
 
-    TutorApplication applyForRequest(Long requestId, Long tutorId, TutorApplicationCreateRequest req);
+    TutorApplication applyForRequest(Long requestId, Long userId, TutorApplicationCreateRequest req);
 
-    void withdrawApplication(Long applicationId, Long tutorId);
+    void withdrawApplication(Long applicationId, Long userId);
 
-    List<TutorApplicationResponse> getApplicationsForRequest(Long requestId, Long parentId);
+    List<TutorApplicationResponse> getApplicationsForRequest(Long requestId, Long userId);
 
-    List<TutorApplicationResponse> getMyApplications(Long tutorId);
+    List<TutorApplicationResponse> getMyApplications(Long userId);
 
-    void acceptApplication(Long applicationId, Long parentId);
+    void acceptApplication(Long applicationId, Long userId);
 
-    void rejectApplication(Long applicationId, Long parentId);
+    void rejectApplication(Long applicationId, Long userId);
 
     TutorApplicationResponse getApplicationDetail(Long applicationId);
 }

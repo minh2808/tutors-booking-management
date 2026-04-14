@@ -1,6 +1,7 @@
 package org.tutorbooking.service;
 
 import org.tutorbooking.dto.request.UpdateTutorRequest;
+import org.tutorbooking.dto.response.TopTutorResponse;
 import org.tutorbooking.dto.response.TutorDetailResponse;
 import org.tutorbooking.dto.response.TutorReviewSummaryResponse;
 import org.springframework.data.domain.Page;
@@ -20,5 +21,5 @@ public interface TutorService {
     void approveTutor(Long tutorId);
     void rejectTutor(Long tutorId, String reason);
 
-    Page<org.tutorbooking.dto.response.TopTutorResponse> getTopTutors(int page, int size);
+    Page<TopTutorResponse> getTopTutors(int page, int size);
 }

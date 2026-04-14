@@ -34,8 +34,8 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     private final EmailService emailService;
 
     @Override
-    public TutorRequest createRequest(Long parentId, TutorRequestCreateRequest req) {
-        Parent parent = parentRepository.findById(parentId)
+    public TutorRequest createRequest(Long userId, TutorRequestCreateRequest req) {
+        Parent parent = parentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
 
         Subject subject = subjectRepository.findById(req.getSubjectId())
@@ -44,7 +44,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
         Student student = studentRepository.findById(req.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student không tồn tại"));
 
-        if (!student.getParent().getId().equals(parentId)) {
+        if (!student.getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Học sinh này không thuộc quyền quản lý của bạn");
         }
 
@@ -77,8 +77,10 @@ public class TutorRequestServiceImpl implements TutorRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TutorRequestResponse> getMyRequests(Long parentId) {
-        List<TutorRequest> requests = tutorRequestRepository.findByParentIdWithSubject(parentId);
+    public List<TutorRequestResponse> getMyRequests(Long userId) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
+        List<TutorRequest> requests = tutorRequestRepository.findByParentIdWithSubject(parent.getId());
 
         return requests.stream().map(tr -> {
             long applicantsCount = tutorApplicationRepository.countByRequestId(tr.getId());
@@ -87,11 +89,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public void updateRequest(Long requestId, Long parentId, TutorRequestUpdateRequest req) {
+    public void updateRequest(Long requestId, Long userId, TutorRequestUpdateRequest req) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
         TutorRequest tutorRequest = tutorRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại"));
 
-        if (!tutorRequest.getParent().getId().equals(parentId)) {
+        if (!tutorRequest.getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Không có quyền cập nhật yêu cầu này");
         }
 
@@ -120,11 +124,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public void cancelRequest(Long requestId, Long parentId) {
+    public void cancelRequest(Long requestId, Long userId) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
         TutorRequest tutorRequest = tutorRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại"));
 
-        if (!tutorRequest.getParent().getId().equals(parentId)) {
+        if (!tutorRequest.getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Không có quyền hủy yêu cầu này");
         }
 
@@ -148,11 +154,11 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public TutorApplication applyForRequest(Long requestId, Long tutorId, TutorApplicationCreateRequest req) {
+    public TutorApplication applyForRequest(Long requestId, Long userId, TutorApplicationCreateRequest req) {
         TutorRequest tutorRequest = tutorRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại"));
 
-        Tutor tutor = tutorRepository.findById(tutorId)
+        Tutor tutor = tutorRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
 
         if (!"approved".equalsIgnoreCase(tutor.getApprovalStatus())) {
@@ -163,7 +169,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
              throw new RuntimeException("Bài tuyển dụng đã đóng hoặc đã nhận đủ gia sư");
         }
 
-        if (tutorApplicationRepository.existsByRequestIdAndTutorId(requestId, tutorId)) {
+        if (tutorApplicationRepository.existsByRequestIdAndTutorId(requestId, tutor.getId())) {
             throw new RuntimeException("Bạn đã ứng tuyển cho yêu cầu này rồi");
         }
 
@@ -199,11 +205,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public void withdrawApplication(Long applicationId, Long tutorId) {
+    public void withdrawApplication(Long applicationId, Long userId) {
+        Tutor tutor = tutorRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
         TutorApplication application = tutorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ứng tuyển không tồn tại"));
 
-        if (!application.getTutor().getId().equals(tutorId)) {
+        if (!application.getTutor().getId().equals(tutor.getId())) {
             throw new RuntimeException("Không có quyền rút lại ứng tuyển này");
         }
 
@@ -216,11 +224,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TutorApplicationResponse> getApplicationsForRequest(Long requestId, Long parentId) {
+    public List<TutorApplicationResponse> getApplicationsForRequest(Long requestId, Long userId) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
         TutorRequest tutorRequest = tutorRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại"));
 
-        if (!tutorRequest.getParent().getId().equals(parentId)) {
+        if (!tutorRequest.getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Không có quyền xem ứng tuyển cho yêu cầu này");
         }
 
@@ -233,8 +243,10 @@ public class TutorRequestServiceImpl implements TutorRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TutorApplicationResponse> getMyApplications(Long tutorId) {
-        List<TutorApplication> applications = tutorApplicationRepository.findByTutorIdWithRequest(tutorId);
+    public List<TutorApplicationResponse> getMyApplications(Long userId) {
+        Tutor tutor = tutorRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
+        List<TutorApplication> applications = tutorApplicationRepository.findByTutorIdWithRequest(tutor.getId());
 
         return applications.stream()
                 .map(this::mapToTutorApplicationResponse)
@@ -242,11 +254,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public void acceptApplication(Long applicationId, Long parentId) {
+    public void acceptApplication(Long applicationId, Long userId) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
         TutorApplication application = tutorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ứng tuyển không tồn tại"));
 
-        if (!application.getRequest().getParent().getId().equals(parentId)) {
+        if (!application.getRequest().getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Không có quyền chấp nhận ứng tuyển này");
         }
 
@@ -276,11 +290,13 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     }
 
     @Override
-    public void rejectApplication(Long applicationId, Long parentId) {
+    public void rejectApplication(Long applicationId, Long userId) {
+        Parent parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
         TutorApplication application = tutorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ứng tuyển không tồn tại"));
 
-        if (!application.getRequest().getParent().getId().equals(parentId)) {
+        if (!application.getRequest().getParent().getId().equals(parent.getId())) {
             throw new RuntimeException("Không có quyền từ chối ứng tuyển này");
         }
 

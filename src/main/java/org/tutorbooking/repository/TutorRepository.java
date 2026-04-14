@@ -5,6 +5,7 @@ import org.springframework.data.repository.query.Param;
 import org.tutorbooking.domain.entity.Tutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.tutorbooking.dto.response.TopTutorResponse;
 
 import java.util.Optional;
 
@@ -74,5 +75,5 @@ public interface TutorRepository extends JpaRepository<Tutor, Long> {
             GROUP BY t.id, u.fullName, u.avatarUrl, u.email
             ORDER BY AVG(r.rating) DESC
             """)
-    Page<org.tutorbooking.dto.response.TopTutorResponse> findTopTutors(Pageable pageable);
+    Page<TopTutorResponse> findTopTutors(Pageable pageable);
 }
