@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface TutorRequestService {
 
-    TutorRequest createRequest(Long userId, TutorRequestCreateRequest req);
+    TutorRequestResponse createRequest(Long userId, TutorRequestCreateRequest req);
 
     TutorRequestResponse getRequestDetail(Long requestId);
 

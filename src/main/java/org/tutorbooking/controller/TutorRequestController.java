@@ -26,10 +26,10 @@ public class TutorRequestController {
     private final TutorRequestService tutorRequestService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<TutorRequest>> createRequest(
+    public ResponseEntity<ApiResponse<TutorRequestResponse>> createRequest(
             @AuthenticationPrincipal UserPrincipal user,
             @Valid @RequestBody TutorRequestCreateRequest req) {
-        TutorRequest tutorRequest = tutorRequestService.createRequest(user.getId(), req);
+        TutorRequestResponse tutorRequest = tutorRequestService.createRequest(user.getId(), req);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo yêu cầu thành công", tutorRequest));
     }

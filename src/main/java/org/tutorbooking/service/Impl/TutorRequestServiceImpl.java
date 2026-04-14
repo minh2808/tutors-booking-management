@@ -34,7 +34,7 @@ public class TutorRequestServiceImpl implements TutorRequestService {
     private final EmailService emailService;
 
     @Override
-    public TutorRequest createRequest(Long userId, TutorRequestCreateRequest req) {
+    public TutorRequestResponse createRequest(Long userId, TutorRequestCreateRequest req) {
         Parent parent = parentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Parent không tồn tại"));
 
@@ -61,7 +61,8 @@ public class TutorRequestServiceImpl implements TutorRequestService {
                 .status(TutorRequestStatus.SEARCHING)
                 .build();
 
-        return tutorRequestRepository.save(tutorRequest);
+        TutorRequest savedTutorRequest = tutorRequestRepository.save(tutorRequest);
+        return mapToTutorRequestResponse(savedTutorRequest, 0);
     }
 
     @Override
