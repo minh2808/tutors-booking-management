@@ -164,12 +164,17 @@ public class BookingServiceImpl implements BookingService {
         List<Session> newSessions = generateSessionsForBooking(booking);
         sessionRepository.saveAll(newSessions);
         
-        emailService.sendBookingStatusChangedEmail(
-                booking.getTutor().getUser().getEmail(),
-                booking.getTutor().getUser().getFullName(),
-                booking.getSubject().getName(),
-                "ACTIVE"
-        );
+        try {
+            emailService.sendBookingStatusChangedEmail(
+                    booking.getTutor().getUser().getEmail(),
+                    booking.getTutor().getUser().getFullName(),
+                    booking.getSubject().getName(),
+                    "ACTIVE"
+            );
+        } catch (Exception e) {
+            System.err.println("Gửi email kích hoạt hợp đồng thất bại, tuy nhiên Thanh toán và Hợp đồng vẫn được ghi nhận ACTIVE.");
+            e.printStackTrace();
+        }
     }
 
     private void validateSchedulesOverlap(Booking booking) {

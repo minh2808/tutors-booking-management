@@ -6,10 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
-import org.tutorbooking.dto.request.GoogleLoginRequest;
-import org.tutorbooking.dto.request.RegisterRequest;
-import org.tutorbooking.dto.request.LoginRequest;
-import org.tutorbooking.dto.request.ResetPasswordRequest;
+import org.tutorbooking.dto.request.*;
 import org.tutorbooking.dto.response.ApiResponse;
 import org.tutorbooking.dto.response.AuthResponse;
 import org.tutorbooking.service.AuthService;
@@ -62,7 +59,7 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody org.tutorbooking.dto.request.ForgotPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Vui lòng kiểm tra email để nhận mã xác nhận đặt lại mật khẩu."));
     }
