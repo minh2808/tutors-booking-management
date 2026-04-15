@@ -3,6 +3,7 @@ package org.tutorbooking.service.Impl;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -56,12 +57,12 @@ public class AuthServiceImpl implements AuthService {
     private GoogleTokenVerifier googleTokenVerifier;
 
     @Autowired
-    private org.springframework.mail.javamail.JavaMailSender mailSender;
+    private JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
     private String senderEmail;
 
-    @Value("${frontend.url:http://localhost:3000}") 
+    @Value("${frontend.url:https://tutors-booking-management-fe.vercel.app/}")
     private String frontendUrl;
 
     @Transactional
